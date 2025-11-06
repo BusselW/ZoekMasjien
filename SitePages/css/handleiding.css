@@ -1,0 +1,129 @@
+/* css/handleiding.css */
+
+.handleiding-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparante achtergrond */
+    z-index: 10000; /* Zeer hoge z-index om boven alles te zijn */
+    display: flex; 
+    justify-content: center;
+    align-items: flex-start; 
+    padding-top: 50px; 
+    overflow-y: auto; /* Toestaan scrollen als modal te hoog is */
+}
+
+.handleiding-modal {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 450px; 
+    z-index: 10001; /* Bovenop de overlay */
+    position: relative; 
+    border: 2px solid #005A9C;
+    margin-bottom: 50px; /* Ruimte aan de onderkant als er gescrolld wordt */
+}
+.handleiding-modal.bezig {
+    opacity: 0.8; /* Visuele feedback als een actie bezig is */
+}
+
+
+.handleiding-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.handleiding-header h3 {
+    margin: 0;
+    font-size: 1.4em;
+    color: #005A9C;
+}
+
+.handleiding-sluit-knop {
+    background: none;
+    border: none;
+    font-size: 1.8em;
+    cursor: pointer;
+    color: #777;
+    padding: 0 5px;
+}
+.handleiding-sluit-knop:hover {
+    color: #333;
+}
+
+.handleiding-content {
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+.handleiding-content p {
+    margin-top: 0;
+}
+
+.handleiding-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+#handleidingStapIndicator {
+    font-size: 0.9em;
+    color: #555;
+}
+
+.handleiding-navigatie button {
+    margin-left: 10px;
+}
+/* Hergebruik .admin-knop stijl, maar maak eventueel kleiner */
+.admin-knop.klein { 
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+
+/* Stijlen voor het highlighten van elementen */
+.handleiding-highlight-overlay { /* Niet meer in gebruik, spotlight via highlight zelf */
+    /* position: fixed; ... */
+}
+
+.handleiding-highlight {
+    position: absolute; 
+    border: 3px solid #007bff; /* Duidelijke highlight kleur, bijv. helder blauw */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65); /* Spotlight effect */
+    border-radius: 5px;
+    z-index: 9999; /* Net onder de modal, maar boven de overlay's spotlight */
+    pointer-events: none; /* Zorgt dat het element zelf niet klikbaar is door de highlight */
+    transition: top 0.3s ease-out, left 0.3s ease-out, width 0.3s ease-out, height 0.3s ease-out;
+}
+
+body.handleiding-actief {
+    overflow: hidden; /* Voorkom scrollen van de achtergrondpagina */
+}
+
+
+#startHandleidingKnop {
+    background-color: #28a745; /* Groene kleur */
+    color: white;
+    border: none;
+    padding: 8px 12px; /* Standaard padding voor knoppen */
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 0.9em; /* Standaard lettergrootte voor knoppen */
+    border-radius: 5px; /* Afgeronde hoeken */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#startHandleidingKnop:hover {
+    background-color: #218838; /* Donkerder groen bij hover */
+}

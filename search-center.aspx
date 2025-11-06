@@ -348,6 +348,7 @@
                     <label for="weekmailCategorieFilter">Weekmail Categorie</label>
                     <select id="weekmailCategorieFilter" onchange="performSearch()">
                         <option value="">Alle Categorieën</option>
+                        <option value="beoordelen">Beoordelen (hoofdmap)</option>
                         <option value="Verkeersborden">Verkeersborden</option>
                         <option value="Rijgedrag">Rijgedrag</option>
                         <option value="ZVZichtPlicht">ZV Zicht & Plicht</option>
@@ -672,12 +673,17 @@
                 
                 // Check of er een specifieke categorie geselecteerd is
                 let weekmailPathFilter = '';
-                if (filters.weekmailCategorie) {
+                if (filters.weekmailCategorie === 'beoordelen') {
+                    // Speciaal geval: alleen hoofdmap beoordelen (geen subdirectories)
+                    // We zoeken in beoordelen maar NIET in de submappen
+                    weekmailPathFilter = `Path:"https://som.org.om.local${weekmailBasePath}/*" AND NOT Path:"https://som.org.om.local${weekmailBasePath}/*/*"`;
+                    console.log('[KQL] Alleen beoordelen hoofdmap (geen submappen)');
+                } else if (filters.weekmailCategorie) {
                     // Specifieke categorie: zoek alleen in die subfolder
                     weekmailPathFilter = `Path:"https://som.org.om.local${weekmailBasePath}/${filters.weekmailCategorie}*"`;
                     console.log('[KQL] Weekmail categorie geselecteerd:', filters.weekmailCategorie);
                 } else {
-                    // Geen specifieke categorie: zoek in hele beoordelen folder
+                    // Geen specifieke categorie: zoek in hele beoordelen folder (inclusief alle submappen)
                     weekmailPathFilter = `Path:"https://som.org.om.local${weekmailBasePath}*"`;
                     console.log('[KQL] Alle weekmail categorieën');
                 }

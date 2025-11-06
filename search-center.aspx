@@ -337,6 +337,26 @@
             </div>
             <div class="filters-content">
                 <div class="filter-group">
+                    <label for="contentTypeFilter">Zoek in</label>
+                    <select id="contentTypeFilter" onchange="toggleWeekmailCategorie()">
+                        <option value="documenten">Documenten</option>
+                        <option value="weekmail">Weekmail</option>
+                        <option value="alle">Alles</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="weekmailCategorieGroep" style="display: none;">
+                    <label for="weekmailCategorieFilter">Weekmail Categorie</label>
+                    <select id="weekmailCategorieFilter" onchange="performSearch()">
+                        <option value="">Alle Categorieën</option>
+                        <option value="Verkeersborden">Verkeersborden</option>
+                        <option value="Rijgedrag">Rijgedrag</option>
+                        <option value="ZVZichtPlicht">ZV Zicht & Plicht</option>
+                        <option value="Parkeren">Parkeren</option>
+                        <option value="FlitsSV">ZV Flits</option>
+                        <option value="Flex">Flex</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label for="fileTypeFilter">Bestandstype</label>
                     <select id="fileTypeFilter" onchange="performSearch()">
                         <option value="">Alle Typen</option>
@@ -344,7 +364,6 @@
                         <option value="xlsx">Excel Werkbladen</option>
                         <option value="pptx">PowerPoint</option>
                         <option value="pdf">PDF</option>
-                        <option value="aspx">Webpagina's</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -399,8 +418,10 @@
             // Aangepast voor MulderT site en alle subsites
             searchScope: 'custom',
             
-            // Basis site URL - alle subsites worden automatisch meegenomen
-            customSearchUrl: 'https://som.org.om.local/sites/MulderT',
+            // BELANGRIJK: Gebruik ALTIJD de huidige site context indien beschikbaar!
+            customSearchUrl: (typeof _spPageContextInfo !== 'undefined' && _spPageContextInfo.webAbsoluteUrl) 
+                ? _spPageContextInfo.webAbsoluteUrl 
+                : 'https://som.org.om.local/sites/MulderT',
             
             // Path filter voor site scope
             basePath: '/sites/MulderT',
@@ -415,6 +436,13 @@
                 people: 'b09a7990-05ea-4af9-81ef-edfab16c4e32'
             }
         };
+        
+        // Log de configuratie direct
+        console.log('[Config] _spPageContextInfo beschikbaar:', typeof _spPageContextInfo !== 'undefined');
+        if (typeof _spPageContextInfo !== 'undefined') {
+            console.log('[Config] Huidige site URL:', _spPageContextInfo.webAbsoluteUrl);
+        }
+        console.log('[Config] Gebruikte search URL:', SEARCH_CONFIG.customSearchUrl);
         
         // Search state
         let currentQuery = '';
@@ -542,6 +570,27 @@
             });
         });
 
+        // Toggle weekmail categorie dropdown
+        function toggleWeekmailCategorie() {
+            const contentType = document.getElementById('contentTypeFilter').value;
+            const weekmailGroep = document.getElementById('weekmailCategorieGroep');
+            
+            if (contentType === 'weekmail') {
+                weekmailGroep.style.display = 'flex'; // Toon de categorie dropdown
+                console.log('[UI] Weekmail categorie dropdown getoond');
+            } else {
+                weekmailGroep.style.display = 'none'; // Verberg de categorie dropdown
+                // Reset de selectie
+                document.getElementById('weekmailCategorieFilter').value = '';
+                console.log('[UI] Weekmail categorie dropdown verborgen');
+            }
+            
+            // Voer direct een nieuwe zoekopdracht uit
+            if (currentQuery) {
+                performSearch();
+            }
+        }
+
         // Toggle filters visibility
         function toggleFilters() {
             const container = document.getElementById('filtersContainer');
@@ -573,6 +622,8 @@
             
             // Get filter values
             const filters = {
+                contentType: document.getElementById('contentTypeFilter').value,
+                weekmailCategorie: document.getElementById('weekmailCategorieFilter').value,
                 fileType: document.getElementById('fileTypeFilter').value,
                 author: document.getElementById('authorFilter').value,
                 dateRange: document.getElementById('dateFilter').value,
@@ -611,29 +662,80 @@
             
             console.log('[KQL] Path filter:', pathFilter);
             
-            // TEST: Begin met eenvoudige query zonder alle filters
-            // Stap 1: Alleen zoekterm en path (GEEN bestandstype filter)
-            kqlQuery = `${query} AND ${pathFilter}`;
+            // Bepaal content type filter (Documenten vs Weekmail)
+            const contentTypeFilter = filters.contentType || 'documenten';
+            console.log('[KQL] Content type filter:', contentTypeFilter);
             
-            console.log('[KQL] Basis query (zonder filters):', kqlQuery);
+            if (contentTypeFilter === 'weekmail') {
+                // WEEKMAIL FILTER: Zoek alleen in SitePages met "Weekmail" in titel/content
+                const weekmailBasePath = '/sites/MulderT/Onderdelen/beoordelen';
+                
+                // Check of er een specifieke categorie geselecteerd is
+                let weekmailPathFilter = '';
+                if (filters.weekmailCategorie) {
+                    // Specifieke categorie: zoek alleen in die subfolder
+                    weekmailPathFilter = `Path:"https://som.org.om.local${weekmailBasePath}/${filters.weekmailCategorie}*"`;
+                    console.log('[KQL] Weekmail categorie geselecteerd:', filters.weekmailCategorie);
+                } else {
+                    // Geen specifieke categorie: zoek in hele beoordelen folder
+                    weekmailPathFilter = `Path:"https://som.org.om.local${weekmailBasePath}*"`;
+                    console.log('[KQL] Alle weekmail categorieën');
+                }
+                
+                // ContentType moet "Sitepagina" of FileType moet "aspx" zijn
+                const sitePageFilter = `(ContentType:"Sitepagina" OR FileType:aspx) AND ${weekmailPathFilter}`;
+                
+                // Als de zoekterm "weekmail" is, zoek dan gewoon naar alle weekmail pagina's
+                if (query.toLowerCase() === 'weekmail') {
+                    kqlQuery = `Weekmail AND ${sitePageFilter}`;
+                } else {
+                    // Combineer zoekterm met weekmail filter
+                    kqlQuery = `${query} AND Weekmail AND ${sitePageFilter}`;
+                }
+                
+                console.log('[KQL] Weekmail query:', kqlQuery);
+                
+            } else if (contentTypeFilter === 'alle') {
+                // ALLE CONTENT: Geen bestandstype filters
+                kqlQuery = `${query} AND ${pathFilter}`;
+                console.log('[KQL] Alles query:', kqlQuery);
+                
+            } else {
+                // DOCUMENTEN FILTER (standaard): Zoals voorheen
+                kqlQuery = `${query} AND ${pathFilter}`;
+                
+                // Stap 2: Sluit ASPX pagina's uit
+                kqlQuery += ` AND NOT FileType:aspx`;
+                
+                // Stap 3: Alleen echte document types
+                const toegestaneTypes = ['doc','docx','xls','xlsx','ppt','pptx','pdf','txt','rtf'];
+                const typeFilter = toegestaneTypes.map(ext => `FileType:${ext}`).join(' OR ');
+                kqlQuery += ` AND (${typeFilter})`;
+                
+                console.log('[KQL] Documenten query:', kqlQuery);
+            }
             
-            // Voeg bestandstype filter toe indien nodig
-            if (filters.fileType) {
-                const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');
-                if (sanitizedFileType) {
-                    kqlQuery += ` AND FileType:${sanitizedFileType}`;
+            // Stap 4: Extra gebruiker filters (alleen voor documenten en alle content)
+            // Stap 4: Extra gebruiker filters (alleen voor documenten en alle content)
+            if (contentTypeFilter !== 'weekmail') {
+                if (filters.fileType) {
+                    const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');
+                    if (sanitizedFileType) {
+                        kqlQuery += ` AND FileType:${sanitizedFileType}`;
+                        console.log('[KQL] FileType filter toegevoegd:', sanitizedFileType);
+                    }
                 }
             }
             
-            // Voeg auteur filter toe indien nodig
             if (filters.author) {
                 const sanitizedAuthor = filters.author.replace(/"/g, '\\"');
                 if (sanitizedAuthor) {
                     kqlQuery += ` AND Author:"${sanitizedAuthor}"`;
+                    console.log('[KQL] Author filter toegevoegd:', sanitizedAuthor);
                 }
             }
             
-            console.log('[KQL] Complete query:', kqlQuery);
+            console.log('[KQL] Complete finale query:', kqlQuery);
             
             const selectProperties = 'Title,Path,HitHighlightedSummary,LastModifiedTime,Author,FileType,Filename,ContentType';
             const apiUrl = `${zoekApiUrl}?querytext='${encodeURIComponent(kqlQuery)}'&selectproperties='${encodeURIComponent(selectProperties)}'&rowlimit=50`;
@@ -650,8 +752,15 @@
             .then(response => {
                 console.log('[API] Response status:', response.status);
                 console.log('[API] Response OK:', response.ok);
+                console.log('[API] Response headers:', response.headers);
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // Log meer details bij fouten
+                    console.error('[API] HTTP Error:', response.status, response.statusText);
+                    return response.text().then(text => {
+                        console.error('[API] Error response body:', text);
+                        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                    });
                 }
                 return response.json();
             })

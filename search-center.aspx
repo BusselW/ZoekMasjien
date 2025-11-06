@@ -423,95 +423,34 @@
         // ZOEK CONFIGURATIE FUNCTIES
         // ============================================================================
         
-        // Bepaal de juiste zoek URL gebaseerd op configuratie
-        function getSearchUrl() {
-            switch(SEARCH_CONFIG.searchScope) {
-                case 'current-site':
-                    // Zoek alleen in huidige site
-                    return _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : window.location.origin;
-                    
-                case 'web-application':
-                    // Zoek in hele web application (alle site collections)
-                    if (_spPageContextInfo && _spPageContextInfo.webAbsoluteUrl) {
-                        const url = _spPageContextInfo.webAbsoluteUrl;
-                        const match = url.match(/^(https?:\/\/[^\/]+)/);
-                        return match ? match[1] : window.location.origin;
-                    }
-                    return window.location.origin;
-                    
-                case 'custom':
-                    // Gebruik MulderT site URL - ga naar web application root voor search API
-                    const baseUrl = 'https://som.org.om.local';
-                    return baseUrl;
-                    
-                case 'auto':
-                default:
-                    // Fallback naar custom configuratie
-                    return 'https://som.org.om.local';
-            }
-        }
-        
-        // Bepaal de juiste search source ID
-        function getSearchSourceId() {
-            switch(SEARCH_CONFIG.searchScope) {
-                case 'current-site':
-                    return SEARCH_CONFIG.searchSources.local; // Lokale resultaten
-                case 'web-application':
-                case 'custom':
-                case 'auto':
-                default:
-                    return SEARCH_CONFIG.searchSources.enterprise; // Enterprise resultaten
-            }
-        }
-        
         // Toon configuratie info aan gebruiker
         function showSearchConfig() {
-            const searchUrl = getSearchUrl();
-            const sourceId = getSearchSourceId();
+            const searchUrl = SEARCH_CONFIG.customSearchUrl;
             
             // Update UI met scope informatie
             const scopeElement = document.getElementById('scopeText');
             if (scopeElement) {
-                let scopeText = '';
-                switch(SEARCH_CONFIG.searchScope) {
-                    case 'current-site':
-                        scopeText = 'Huidige site';
-                        break;
-                    case 'web-application':
-                        scopeText = 'Alle site collections';
-                        break;
-                    case 'custom':
-                        scopeText = 'MulderT site + alle subsites';
-                        break;
-                    case 'auto':
-                    default:
-                        scopeText = searchUrl.includes('/sites/') ? 'Alle site collections' : 'Huidige site';
-                        break;
-                }
-                
-                scopeElement.textContent = `${scopeText} (som.org.om.local)`;
+                scopeElement.textContent = `MulderT site + alle subsites (som.org.om.local)`;
             }
             
             // Log voor debugging
             console.log('ZoekMasjien Configuratie:', {
                 searchScope: SEARCH_CONFIG.searchScope,
                 searchUrl: searchUrl,
-                sourceId: sourceId,
-                currentSite: _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : 'Niet beschikbaar'
+                basePath: SEARCH_CONFIG.basePath
             });
         }
 
-        // Laad beschikbare subsites
+        // Laad beschikbare subsites (vereenvoudigd met werkende API)
         function loadAvailableSubsites() {
-            const searchUrl = getSearchUrl();
-            const apiUrl = searchUrl + "/_api/search/query?querytext='ContentClass:STS_Web Path:\"" + 
-                          SEARCH_CONFIG.basePath + "*\"'&rowlimit=50&selectproperties='Title,Path'";
+            const zoekApiUrl = `${SEARCH_CONFIG.customSearchUrl}/_api/search/query`;
+            const kqlQuery = `ContentClass:STS_Web Path:"${SEARCH_CONFIG.basePath}*"`;
+            const apiUrl = `${zoekApiUrl}?querytext='${encodeURIComponent(kqlQuery)}'&rowlimit=50&selectproperties='Title,Path'`;
 
             fetch(apiUrl, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'application/json;odata=verbose',
-                    'Content-Type': 'application/json;odata=verbose'
+                    'Accept': 'application/json;odata=verbose'
                 }
             })
             .then(response => response.json())
@@ -522,8 +461,7 @@
                 }
             })
             .catch(error => {
-                console.log('Kan subsites niet laden, gebruik standaard opties:', error);
-                // Fallback naar bekende subsites
+                console.log('Kan subsites niet laden:', error);
                 addDefaultSubsiteOptions();
             });
         }
@@ -536,7 +474,7 @@
             // Bewaar de huidige selectie
             const currentValue = siteFilter.value;
 
-            // Verwijder alle behalve de eerste optie (Alle Subsites)
+            // Verwijder alle behalve de eerste twee opties
             while (siteFilter.children.length > 2) {
                 siteFilter.removeChild(siteFilter.lastChild);
             }
@@ -545,24 +483,18 @@
             const addedPaths = new Set();
             subsites.forEach(subsite => {
                 const cells = subsite.Cells.results;
-                let title = '';
-                let path = '';
-                
-                cells.forEach(cell => {
-                    if (cell.Key === 'Title') title = cell.Value;
-                    if (cell.Key === 'Path') path = cell.Value;
-                });
+                const title = getCelWaarde(cells, 'Title');
+                const path = getCelWaarde(cells, 'Path');
 
                 if (path && !addedPaths.has(path)) {
                     addedPaths.add(path);
                     
                     // Maak leesbare naam van pad
-                    const pathParts = path.replace('https://som.org.om.local', '').split('/').filter(p => p);
-                    const siteName = pathParts[pathParts.length - 1] || title || 'Onbekende Site';
-                    const displayName = title || siteName;
+                    const relativePath = path.replace('https://som.org.om.local', '');
+                    const displayName = title || relativePath.split('/').filter(p => p).pop() || 'Onbekende Site';
                     
                     const option = document.createElement('option');
-                    option.value = path.replace('https://som.org.om.local', '');
+                    option.value = relativePath;
                     option.textContent = displayName;
                     siteFilter.appendChild(option);
                 }
@@ -573,7 +505,7 @@
                 siteFilter.value = currentValue;
             }
 
-            console.log(`${addedPaths.size} subsites geladen voor filter`);
+            console.log(`${addedPaths.size} subsites geladen`);
         }
 
         // Voeg standaard subsite opties toe als automatisch laden mislukt
@@ -582,9 +514,8 @@
             if (!siteFilter) return;
 
             const defaultOptions = [
-                { value: '/sites/MulderT/Documents', text: 'Documenten' },
-                { value: '/sites/MulderT/Lists', text: 'Lijsten' },
-                { value: '/sites/MulderT/SitePages', text: 'Site Pagina\'s' }
+                { value: '/sites/MulderT/Kennis', text: 'Kennis' },
+                { value: '/sites/MulderT/Documents', text: 'Documenten' }
             ];
 
             defaultOptions.forEach(option => {
@@ -652,56 +583,65 @@
             executeSharePointSearch(query, filters);
         }
 
-        // Execute SharePoint REST API search
+        // Execute SharePoint REST API search (aangepast met werkende KQL logica)
         function executeSharePointSearch(query, filters) {
-            // Bepaal de zoek URL gebaseerd op configuratie
-            const searchUrl = getSearchUrl();
-            let searchQuery = query;
-
-            // Voeg altijd de basis path filter toe om alleen MulderT en subsites te doorzoeken
-            searchQuery += ' Path:"' + SEARCH_CONFIG.basePath + '*"';
-
-            // Apply filters to the query with proper escaping
-            if (filters.fileType) {
-                // Sanitize fileType to only allow alphanumeric characters
-                const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');
-                if (sanitizedFileType) {
-                    searchQuery += ' FileExtension:' + sanitizedFileType;
-                }
-            }
-            if (filters.author) {
-                // Escape quotes in author name
-                const sanitizedAuthor = filters.author.replace(/"/g, '\\"');
-                if (sanitizedAuthor) {
-                    searchQuery += ' Author:"' + sanitizedAuthor + '"';
-                }
-            }
+            const zoekApiUrl = `${SEARCH_CONFIG.customSearchUrl}/_api/search/query`;
+            
+            // Bouw KQL query zoals in werkende implementatie
+            let kqlQuery = "";
+            const documentExtensiesLijst = ['doc','docx','xls','xlsx','ppt','pptx','pdf','txt','rtf','odt','ods','odp'];
+            const algemeenFileTypeFilter = documentExtensiesLijst.map(ext => `FileType:${ext}`).join(' OR ');
+            
+            // Bepaal basis path filter
+            let pathFilter = `Path:"${SEARCH_CONFIG.basePath}*"`;
+            
+            // Pas subsite filter toe indien geselecteerd
             if (filters.site) {
-                // Sanitize site to only allow safe characters voor specifieke subsite
                 const sanitizedSite = filters.site.replace(/[^a-zA-Z0-9\-_\/]/g, '');
                 if (sanitizedSite) {
-                    // Vervang de algemene path filter met specifieke subsite
-                    searchQuery = searchQuery.replace(' Path:"' + SEARCH_CONFIG.basePath + '*"', '');
-                    searchQuery += ' Path:"' + sanitizedSite + '*"';
+                    pathFilter = `Path:"https://som.org.om.local${sanitizedSite}*"`;
                 }
             }
+            
+            // Bouw complete KQL query
+            kqlQuery = `(${query} AND ${pathFilter}) AND (${algemeenFileTypeFilter}) AND NOT FileType:aspx`;
+            
+            // Voeg bestandstype filter toe indien nodig
+            if (filters.fileType) {
+                const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');
+                if (sanitizedFileType) {
+                    kqlQuery += ` AND FileType:${sanitizedFileType}`;
+                }
+            }
+            
+            // Voeg auteur filter toe indien nodig
+            if (filters.author) {
+                const sanitizedAuthor = filters.author.replace(/"/g, '\\"');
+                if (sanitizedAuthor) {
+                    kqlQuery += ` AND Author:"${sanitizedAuthor}"`;
+                }
+            }
+            
+            console.log('[KQL Query]', kqlQuery);
+            
+            const selectProperties = 'Title,Path,HitHighlightedSummary,LastModifiedTime,Author,FileType,Filename,ContentType';
+            const apiUrl = `${zoekApiUrl}?querytext='${encodeURIComponent(kqlQuery)}'&selectproperties='${encodeURIComponent(selectProperties)}'&rowlimit=50`;
 
-            // Build REST API URL
-            const sourceId = getSearchSourceId();
-            const apiUrl = searchUrl + "/_api/search/query?querytext='" + encodeURIComponent(searchQuery) + 
-                          "'&rowlimit=50&selectproperties='Title,Path,Author,Write,FileExtension,HitHighlightedSummary'" +
-                          (sourceId ? "&sourceid='" + sourceId + "'" : "");
-
-            // Make the API call
+            // Make the API call (zoals in werkende versie)
             fetch(apiUrl, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'application/json;odata=verbose',
-                    'Content-Type': 'application/json;odata=verbose'
+                    'Accept': 'application/json;odata=verbose'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('[API Response]', data);
                 if (data.d && data.d.query && data.d.query.PrimaryQueryResult) {
                     const results = data.d.query.PrimaryQueryResult.RelevantResults.Table.Rows.results;
                     processAndDisplayResults(results, query, filters);
@@ -711,9 +651,14 @@
             })
             .catch(error => {
                 console.error('Search error:', error);
-                // Fallback to mock data for demonstration
-                useMockData(query, filters);
+                displayNoResults();
             });
+        }
+
+        // Helper functie om cel waarde op te halen (zoals in werkende versie)
+        function getCelWaarde(cellenArray, propertyNaam) {
+            const cel = cellenArray.find(c => c.Key === propertyNaam);
+            return cel ? cel.Value : null;
         }
 
         // Process results with advanced ranking algorithm
@@ -721,22 +666,17 @@
             const queryLower = query.toLowerCase();
             const queryTerms = queryLower.split(/\s+/).filter(term => term.length > 0);
 
-            // Transform SharePoint results to our format
+            // Transform SharePoint results to our format (gebruik juiste veldnamen)
             const results = rawResults.map(item => {
                 const cells = item.Cells.results;
-                const result = {};
                 
-                cells.forEach(cell => {
-                    result[cell.Key] = cell.Value;
-                });
-
                 return {
-                    title: result.Title || 'Untitled',
-                    url: result.Path || '#',
-                    snippet: result.HitHighlightedSummary || '',
-                    author: result.Author || 'Unknown',
-                    modified: result.Write || '',
-                    fileType: result.FileExtension || 'aspx'
+                    title: getCelWaarde(cells, 'Title') || 'Geen titel',
+                    url: getCelWaarde(cells, 'Path') || '#',
+                    snippet: getCelWaarde(cells, 'HitHighlightedSummary') || '',
+                    author: getCelWaarde(cells, 'Author') || 'Onbekend',
+                    modified: getCelWaarde(cells, 'LastModifiedTime') || '',
+                    fileType: getCelWaarde(cells, 'FileType') || 'aspx'
                 };
             });
 

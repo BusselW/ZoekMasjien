@@ -1,10 +1,10 @@
 <%@ Page Language="C#" %>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Center</title>
+    <title>Zoekcentrum</title>
     <style>
         * {
             margin: 0;
@@ -284,10 +284,10 @@
 </head>
 <body>
     <div class="search-header">
-        <h1>Search Center</h1>
+        <h1>Zoekcentrum</h1>
         <div class="search-box-wrapper">
-            <input type="text" id="searchBox" class="search-box" placeholder="Search for documents, pages, people..." />
-            <button class="search-button" onclick="performSearch()">Search</button>
+            <input type="text" id="searchBox" class="search-box" placeholder="Zoek naar documenten, pagina's, personen..." />
+            <button class="search-button" onclick="performSearch()">Zoeken</button>
         </div>
     </div>
 
@@ -295,41 +295,41 @@
         <div class="filters-container" id="filtersContainer">
             <div class="filters-header">
                 <h2>Filters</h2>
-                <button class="toggle-filters" onclick="toggleFilters()">Hide Filters</button>
+                <button class="toggle-filters" onclick="toggleFilters()">Filters Verbergen</button>
             </div>
             <div class="filters-content">
                 <div class="filter-group">
-                    <label for="fileTypeFilter">File Type</label>
+                    <label for="fileTypeFilter">Bestandstype</label>
                     <select id="fileTypeFilter" onchange="performSearch()">
-                        <option value="">All Types</option>
-                        <option value="docx">Word Documents</option>
-                        <option value="xlsx">Excel Spreadsheets</option>
+                        <option value="">Alle Typen</option>
+                        <option value="docx">Word Documenten</option>
+                        <option value="xlsx">Excel Werkbladen</option>
                         <option value="pptx">PowerPoint</option>
                         <option value="pdf">PDF</option>
-                        <option value="aspx">Web Pages</option>
+                        <option value="aspx">Webpagina's</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="authorFilter">Author</label>
-                    <input type="text" id="authorFilter" placeholder="Filter by author..." onchange="performSearch()" />
+                    <label for="authorFilter">Auteur</label>
+                    <input type="text" id="authorFilter" placeholder="Filter op auteur..." onchange="performSearch()" />
                 </div>
                 <div class="filter-group">
-                    <label for="dateFilter">Date Range</label>
+                    <label for="dateFilter">Datumbereik</label>
                     <select id="dateFilter" onchange="performSearch()">
-                        <option value="">Any Time</option>
-                        <option value="today">Today</option>
-                        <option value="week">Past Week</option>
-                        <option value="month">Past Month</option>
-                        <option value="year">Past Year</option>
+                        <option value="">Alle Tijden</option>
+                        <option value="today">Vandaag</option>
+                        <option value="week">Afgelopen Week</option>
+                        <option value="month">Afgelopen Maand</option>
+                        <option value="year">Afgelopen Jaar</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="siteFilter">Site</label>
                     <select id="siteFilter" onchange="performSearch()">
-                        <option value="">All Sites</option>
-                        <option value="site1">Team Site</option>
-                        <option value="site2">Document Center</option>
-                        <option value="site3">Project Site</option>
+                        <option value="">Alle Sites</option>
+                        <option value="site1">Teamsite</option>
+                        <option value="site2">Documentcentrum</option>
+                        <option value="site3">Projectsite</option>
                     </select>
                 </div>
             </div>
@@ -337,17 +337,17 @@
 
         <div class="results-container">
             <div class="results-header">
-                <div class="results-count" id="resultsCount">Enter a search term to begin</div>
+                <div class="results-count" id="resultsCount">Voer een zoekterm in om te beginnen</div>
                 <div class="sort-options">
                     <select id="sortOptions" onchange="performSearch()">
-                        <option value="relevance">Sort by Relevance</option>
-                        <option value="date">Sort by Date</option>
-                        <option value="title">Sort by Title</option>
+                        <option value="relevance">Sorteer op Relevantie</option>
+                        <option value="date">Sorteer op Datum</option>
+                        <option value="title">Sorteer op Titel</option>
                     </select>
                 </div>
             </div>
             <div id="resultsContent">
-                <!-- Search results will be dynamically inserted here -->
+                <!-- Zoekresultaten worden hier dynamisch ingevoegd -->
             </div>
         </div>
     </div>
@@ -373,10 +373,10 @@
             
             if (container.classList.contains('filters-collapsed')) {
                 container.classList.remove('filters-collapsed');
-                button.textContent = 'Hide Filters';
+                button.textContent = 'Filters Verbergen';
             } else {
                 container.classList.add('filters-collapsed');
-                button.textContent = 'Show Filters';
+                button.textContent = 'Filters Tonen';
             }
         }
 
@@ -385,7 +385,7 @@
             const query = document.getElementById('searchBox').value.trim();
             
             if (!query) {
-                document.getElementById('resultsCount').textContent = 'Enter a search term to begin';
+                document.getElementById('resultsCount').textContent = 'Voer een zoekterm in om te beginnen';
                 document.getElementById('resultsContent').innerHTML = '';
                 return;
             }
@@ -393,7 +393,7 @@
             currentQuery = query;
             
             // Show loading state
-            document.getElementById('resultsContent').innerHTML = '<div class="loading">Searching</div>';
+            document.getElementById('resultsContent').innerHTML = '<div class="loading">Zoeken</div>';
             
             // Get filter values
             const filters = {
@@ -628,14 +628,14 @@
                 return;
             }
 
-            resultsCount.textContent = `Found ${results.length} result${results.length !== 1 ? 's' : ''} for "${query}"`;
+            resultsCount.textContent = `${results.length} resultaat${results.length !== 1 ? 'en' : ''} gevonden voor "${query}"`;
 
             let html = '';
             results.forEach(result => {
                 const badgeClass = result.matchType === 'exact' ? 'badge-exact' : 
                                  result.matchType === 'almost' ? 'badge-almost' : 'badge-related';
-                const badgeText = result.matchType === 'exact' ? 'EXACT MATCH' : 
-                                result.matchType === 'almost' ? 'ALMOST EXACT' : 'RELATED';
+                const badgeText = result.matchType === 'exact' ? 'EXACTE MATCH' : 
+                                result.matchType === 'almost' ? 'BIJNA EXACT' : 'GERELATEERD';
 
                 html += `
                     <div class="result-item">
@@ -657,11 +657,11 @@
 
         // Display no results message
         function displayNoResults() {
-            document.getElementById('resultsCount').textContent = 'No results found';
+            document.getElementById('resultsCount').textContent = 'Geen resultaten gevonden';
             document.getElementById('resultsContent').innerHTML = `
                 <div class="no-results">
-                    <h3>No results found</h3>
-                    <p>Try different keywords or remove some filters</p>
+                    <h3>Geen resultaten gevonden</h3>
+                    <p>Probeer andere zoekwoorden of verwijder enkele filters</p>
                 </div>
             `;
         }
@@ -688,20 +688,20 @@
 
         // Format date
         function formatDate(dateString) {
-            if (!dateString) return 'Unknown date';
+            if (!dateString) return 'Onbekende datum';
 
             const date = new Date(dateString);
             const now = new Date();
             const diffTime = Math.abs(now - date);
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays === 0) return 'Today';
-            if (diffDays === 1) return 'Yesterday';
-            if (diffDays < 7) return `${diffDays} days ago`;
-            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-            if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+            if (diffDays === 0) return 'Vandaag';
+            if (diffDays === 1) return 'Gisteren';
+            if (diffDays < 7) return `${diffDays} dagen geleden`;
+            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weken geleden`;
+            if (diffDays < 365) return `${Math.floor(diffDays / 30)} maanden geleden`;
 
-            return date.toLocaleDateString();
+            return date.toLocaleDateString('nl-NL');
         }
 
         // Mock data for demonstration (fallback when SharePoint API is not available)

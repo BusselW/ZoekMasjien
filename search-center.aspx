@@ -421,10 +421,8 @@
             // Aangepast voor MulderT site en alle subsites
             searchScope: 'custom',
             
-            // BELANGRIJK: Gebruik ALTIJD de huidige site context indien beschikbaar!
-            customSearchUrl: (typeof _spPageContextInfo !== 'undefined' && _spPageContextInfo.webAbsoluteUrl) 
-                ? _spPageContextInfo.webAbsoluteUrl 
-                : 'https://som.org.om.local/sites/MulderT',
+            // Direct API link (geen _spPageContextInfo nodig)
+            customSearchUrl: 'https://som.org.om.local/sites/MulderT',
             
             // Path filter voor site scope
             basePath: '/sites/MulderT',
@@ -441,11 +439,9 @@
         };
         
         // Log de configuratie direct
-        console.log('[Config] _spPageContextInfo beschikbaar:', typeof _spPageContextInfo !== 'undefined');
-        if (typeof _spPageContextInfo !== 'undefined') {
-            console.log('[Config] Huidige site URL:', _spPageContextInfo.webAbsoluteUrl);
-        }
-        console.log('[Config] Gebruikte search URL:', SEARCH_CONFIG.customSearchUrl);
+        console.log('[Config] Direct API modus (geen _spPageContextInfo)');
+        console.log('[Config] Search URL:', SEARCH_CONFIG.customSearchUrl);
+        console.log('[Config] Base Path:', SEARCH_CONFIG.basePath);
         
         // Search state
         let currentQuery = '';

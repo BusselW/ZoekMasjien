@@ -1,63 +1,63 @@
 # ZoekMasjien
 
-**ZoekMasjien** (Dutch for "Search Machine") is a modern, full-width search center designed for SharePoint Server 2019. It features an advanced ranking algorithm that prioritizes search results based on match quality: Exact > Almost Exact > Related.
+**ZoekMasjien** is een modern, volledig-breed zoekcentrum ontworpen voor SharePoint Server 2019. Het beschikt over een geavanceerd ranking-algoritme dat zoekresultaten prioriteert op basis van match-kwaliteit: Exact > Bijna Exact > Gerelateerd.
 
-## Features
+## Functies
 
-- ✨ **Clean, Modern Design**: Full-width layout with responsive design
-- 🎯 **Advanced Ranking Algorithm**: Prioritizes exact matches, then almost exact, then related results
-- 🔍 **Comprehensive Filters**: Filter by file type, author, date range, and site
-- 📊 **Visual Match Indicators**: Color-coded badges show match quality at a glance
-- ⚡ **Fast & Responsive**: Optimized for quick searches and smooth user experience
-- 🔌 **SharePoint Integration**: Works seamlessly with SharePoint 2019 REST API
+- ✨ **Schoon, Modern Ontwerp**: Volledig-breed layout met responsief design
+- 🎯 **Geavanceerd Ranking-Algoritme**: Prioriteert exacte matches, dan bijna exacte, dan gerelateerde resultaten
+- 🔍 **Uitgebreide Filters**: Filter op bestandstype, auteur, datumbereik en site
+- 📊 **Visuele Match Indicatoren**: Kleurgecodeerde badges tonen match-kwaliteit in één oogopslag
+- ⚡ **Snel & Responsief**: Geoptimaliseerd voor snelle zoekopdrachten en soepele gebruikerservaring
+- 🔌 **SharePoint Integratie**: Werkt naadloos samen met SharePoint 2019 REST API
 
-## Quick Start
+## Snel Starten
 
-### Demo Version (No SharePoint Required)
-Open `demo.html` in any web browser to see the search center in action with mock data.
+### Demo Versie (Geen SharePoint Vereist)
+Open `demo.html` in elke webbrowser om het zoekcentrum in actie te zien met mock data.
 
-### SharePoint Deployment
-1. Upload `search-center.aspx` to your SharePoint site (e.g., `/SitePages/`)
-2. Navigate to the page URL
-3. Start searching!
+### SharePoint Implementatie
+1. Upload `search-center.aspx` naar uw SharePoint site (bijv. `/SitePages/`)
+2. Navigeer naar de pagina URL
+3. Begin met zoeken!
 
-## Files
+## Bestanden
 
-- **search-center.aspx**: Full SharePoint 2019 ASPX page with REST API integration
-- **demo.html**: Standalone HTML demo version with mock data
-- **IMPLEMENTATION.md**: Detailed implementation guide and documentation
+- **search-center.aspx**: Volledige SharePoint 2019 ASPX pagina met REST API integratie
+- **demo.html**: Standalone HTML demo versie met mock data
+- **IMPLEMENTATION.md**: Gedetailleerde implementatie handleiding en documentatie
 
-## Ranking Algorithm
+## Ranking Algoritme
 
-The search engine uses a three-tier system:
+De zoekmachine gebruikt een drie-lagen systeem:
 
-1. **Exact Match** (🟢 Green Badge): Title or content exactly matches the search query
-2. **Almost Exact** (🟠 Orange Badge): All search terms present in title or content
-3. **Related** (🔵 Blue Badge): Partial matches and fuzzy term matching
+1. **Exacte Match** (🟢 Groene Badge): Titel of inhoud komt exact overeen met de zoekopdracht
+2. **Bijna Exact** (🟠 Oranje Badge): Alle zoektermen aanwezig in titel of inhoud
+3. **Gerelateerd** (🔵 Blauwe Badge): Gedeeltelijke matches en fuzzy term matching
 
-## Documentation
+## Documentatie
 
-See [IMPLEMENTATION.md](IMPLEMENTATION.md) for:
-- Detailed feature descriptions
-- Installation instructions
-- Usage guide
-- Technical documentation
-- Customization options
-- Troubleshooting tips
+Zie [IMPLEMENTATION.md](IMPLEMENTATION.md) voor:
+- Gedetailleerde functie beschrijvingen
+- Installatie instructies
+- Gebruikshandleiding
+- Technische documentatie
+- Aanpassingsopties
+- Probleemoplossing tips
 
 ## Screenshots
 
-Try these test queries in the demo:
-- "SharePoint Server 2019" - See exact match ranking
-- "SharePoint 2019" - See almost exact matching
-- "search" - See related results
+Probeer deze test zoekopdrachten in de demo:
+- "SharePoint Server 2019" - Zie exacte match ranking
+- "SharePoint 2019" - Zie bijna exacte matching
+- "zoeken" - Zie gerelateerde resultaten
 
-## Requirements
+## Vereisten
 
-- SharePoint Server 2019 (for production use)
-- Modern web browser (Edge, Chrome, Firefox, Safari)
-- SharePoint Search Service must be configured and running
+- SharePoint Server 2019 (voor productie gebruik)
+- Moderne webbrowser (Edge, Chrome, Firefox, Safari)
+- SharePoint Search Service moet geconfigureerd zijn en draaien
 
-## License
+## Licentie
 
-This project is provided as-is for use with SharePoint Server 2019 environments.
+Dit project wordt aangeboden zoals het is voor gebruik met SharePoint Server 2019 omgevingen.

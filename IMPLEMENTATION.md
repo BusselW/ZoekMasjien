@@ -1,250 +1,250 @@
-# ZoekMasjien - SharePoint 2019 Search Center Implementation
+# ZoekMasjien - SharePoint 2019 Zoekcentrum Implementatie
 
-## Overview
+## Overzicht
 
-This is a full-width, standalone search center page for SharePoint Server 2019 with an advanced ranking algorithm that prioritizes results based on match quality.
+Dit is een volledig-brede, standalone zoekcentrum pagina voor SharePoint Server 2019 met een geavanceerd ranking-algoritme dat resultaten prioriteert op basis van match-kwaliteit.
 
-## Features
+## Functies
 
-### 1. Clean, Full-Width Design
-- Modern, responsive design that works on all screen sizes
-- Full-width header with prominent search box
-- Card-based layout for results and filters
-- Professional color scheme with smooth transitions
+### 1. Schoon, Volledig-Breed Ontwerp
+- Modern, responsief ontwerp dat werkt op alle schermformaten
+- Volledig-brede header met prominente zoekbox
+- Card-gebaseerde layout voor resultaten en filters
+- Professioneel kleurenschema met vloeiende overgangen
 
-### 2. Advanced Search Ranking Algorithm
+### 2. Geavanceerd Zoek Ranking-Algoritme
 
-The search engine uses a three-tier ranking system similar to Google:
+De zoekmachine gebruikt een drie-lagen ranking systeem vergelijkbaar met Google:
 
-#### **Exact Match (1000-800 points)** - Highest Priority
-- Title exactly matches query
-- Title contains the full query phrase
-- Content contains the full query phrase
+#### **Exacte Match (1000-800 punten)** - Hoogste Prioriteit
+- Titel komt exact overeen met de zoekopdracht
+- Titel bevat de volledige zoekfrase
+- Inhoud bevat de volledige zoekfrase
 
-#### **Almost Exact Match (700-500 points)** - Medium Priority
-- All query terms appear in the title
-- All query terms appear in the content
-- Most query terms match with high frequency
+#### **Bijna Exacte Match (700-500 punten)** - Gemiddelde Prioriteit
+- Alle zoektermen verschijnen in de titel
+- Alle zoektermen verschijnen in de inhoud
+- Meeste zoektermen komen overeen met hoge frequentie
 
-#### **Related Match (0-499 points)** - Lowest Priority
-- Partial term matches
-- Fuzzy matching for similar terms
-- Term frequency-based relevance
+#### **Gerelateerde Match (0-499 punten)** - Laagste Prioriteit
+- Gedeeltelijke term matches
+- Fuzzy matching voor vergelijkbare termen
+- Term frequentie-gebaseerde relevantie
 
-### 3. Comprehensive Filters
-- **File Type**: Filter by document type (Word, Excel, PowerPoint, PDF, Web Pages)
-- **Author**: Search by document author
-- **Date Range**: Filter by modification date (Today, Week, Month, Year)
-- **Site**: Filter by SharePoint site location
-- Collapsible filter panel for clean interface
+### 3. Uitgebreide Filters
+- **Bestandstype**: Filter op documenttype (Word, Excel, PowerPoint, PDF, Webpagina's)
+- **Auteur**: Zoeken op document auteur
+- **Datumbereik**: Filter op wijzigingsdatum (Vandaag, Week, Maand, Jaar)
+- **Site**: Filter op SharePoint site locatie
+- Inklapbaar filter paneel voor schone interface
 
-### 4. Search Results Display
-- Color-coded badges indicate match quality:
-  - 🟢 **Green** (EXACT MATCH): Perfect match
-  - 🟠 **Orange** (ALMOST EXACT): Very close match
-  - 🔵 **Blue** (RELATED): Related content
-- Highlighted search terms in results
-- Rich metadata (file type, author, modification date)
-- Click-through links to original documents
+### 4. Zoekresultaten Weergave
+- Kleurgecodeerde badges geven match-kwaliteit aan:
+  - 🟢 **Groen** (EXACTE MATCH): Perfecte match
+  - 🟠 **Oranje** (BIJNA EXACT): Zeer dichte match
+  - 🔵 **Blauw** (GERELATEERD): Gerelateerde inhoud
+- Gemarkeerde zoektermen in resultaten
+- Rijke metadata (bestandstype, auteur, wijzigingsdatum)
+- Doorklik links naar originele documenten
 
-### 5. SharePoint Integration
-- Integrates with SharePoint 2019 REST API
-- Fallback to mock data for demonstration
-- Supports SharePoint context (`_spPageContextInfo`)
-- Compatible with SharePoint authentication
+### 5. SharePoint Integratie
+- Integreert met SharePoint 2019 REST API
+- Fallback naar mock data voor demonstratie
+- Ondersteunt SharePoint context (`_spPageContextInfo`)
+- Compatibel met SharePoint authenticatie
 
-## Installation
+## Installatie
 
-### For SharePoint Server 2019
+### Voor SharePoint Server 2019
 
-1. **Upload the file**:
-   - Upload `search-center.aspx` to your SharePoint document library or Site Pages
-   - Recommended location: `/SitePages/search-center.aspx`
+1. **Upload het bestand**:
+   - Upload `search-center.aspx` naar uw SharePoint documentbibliotheek of Site Pages
+   - Aanbevolen locatie: `/SitePages/search-center.aspx`
 
-2. **Set permissions**:
-   - Ensure users have read access to the page
-   - Verify search service is running and configured
+2. **Stel machtigingen in**:
+   - Zorg ervoor dat gebruikers leestoegang hebben tot de pagina
+   - Verifieer dat de zoekservice draait en geconfigureerd is
 
-3. **Access the page**:
-   - Navigate to the page URL in your browser
-   - Bookmark for easy access
+3. **Toegang tot de pagina**:
+   - Navigeer naar de pagina URL in uw browser
+   - Bookmark voor eenvoudige toegang
 
-### Standalone Deployment
+### Standalone Implementatie
 
-The page can also work as a standalone HTML file:
-1. Save as `search-center.html`
-2. Host on any web server
-3. Mock data will be used for demonstration
+De pagina kan ook werken als een standalone HTML bestand:
+1. Opslaan als `search-center.html`
+2. Hosten op elke webserver
+3. Mock data wordt gebruikt voor demonstratie
 
-## Usage
+## Gebruik
 
-### Basic Search
-1. Enter search terms in the search box
-2. Press Enter or click the Search button
-3. Results are automatically ranked and displayed
+### Basis Zoeken
+1. Voer zoektermen in de zoekbox in
+2. Druk op Enter of klik op de Zoeken knop
+3. Resultaten worden automatisch gerangschikt en weergegeven
 
-### Using Filters
-1. Expand the Filters section (if collapsed)
-2. Select desired filter options
-3. Results update automatically
-4. Combine multiple filters for precise results
+### Filters Gebruiken
+1. Klap de Filters sectie uit (indien ingeklapt)
+2. Selecteer gewenste filter opties
+3. Resultaten worden automatisch bijgewerkt
+4. Combineer meerdere filters voor precieze resultaten
 
-### Understanding Results
-- **EXACT MATCH** badge: The result perfectly matches your query
-- **ALMOST EXACT** badge: The result contains all your search terms
-- **RELATED** badge: The result is related to your search terms
-- Results are sorted by relevance score (highest first)
+### Resultaten Begrijpen
+- **EXACTE MATCH** badge: Het resultaat komt perfect overeen met uw zoekopdracht
+- **BIJNA EXACT** badge: Het resultaat bevat al uw zoektermen
+- **GERELATEERD** badge: Het resultaat is gerelateerd aan uw zoektermen
+- Resultaten zijn gesorteerd op relevantiescore (hoogste eerst)
 
-## Technical Details
+## Technische Details
 
-### Ranking Algorithm
+### Ranking Algoritme
 
-The algorithm calculates a score for each result:
+Het algoritme berekent een score voor elk resultaat:
 
 ```javascript
-// Exact Match
-- Title exactly equals query: 1000 points
-- Title contains full query: 900 points
-- Content contains full query: 800 points
+// Exacte Match
+- Titel is exact gelijk aan zoekopdracht: 1000 punten
+- Titel bevat volledige zoekopdracht: 900 punten
+- Inhoud bevat volledige zoekopdracht: 800 punten
 
-// Almost Exact Match
-- All terms in title: 700 points
-- All terms in content: 600 points
-- Most terms with high frequency: 500-599 points
+// Bijna Exacte Match
+- Alle termen in titel: 700 punten
+- Alle termen in inhoud: 600 punten
+- Meeste termen met hoge frequentie: 500-599 punten
 
-// Related Match
-- Term frequency based: 0-499 points
-- Title matches: 50 points per occurrence
-- Content matches: 10 points per occurrence
-- Fuzzy matches: 5 points per occurrence
+// Gerelateerde Match
+- Gebaseerd op term frequentie: 0-499 punten
+- Titel matches: 50 punten per voorkomen
+- Inhoud matches: 10 punten per voorkomen
+- Fuzzy matches: 5 punten per voorkomen
 ```
 
-### SharePoint REST API Integration
+### SharePoint REST API Integratie
 
-The page uses the SharePoint Search REST API:
+De pagina gebruikt de SharePoint Search REST API:
 ```
 /_api/search/query?querytext='[query]'&rowlimit=50
 ```
 
-Filters are applied using SharePoint search query syntax:
-- File type: `FileExtension:docx`
-- Author: `Author:"John Smith"`
-- Path: `Path:/sites/site1`
+Filters worden toegepast met SharePoint zoek query syntax:
+- Bestandstype: `FileExtension:docx`
+- Auteur: `Author:"Jan Janssen"`
+- Pad: `Path:/sites/site1`
 
-### Browser Compatibility
-- Microsoft Edge (recommended for SharePoint)
+### Browser Compatibiliteit
+- Microsoft Edge (aanbevolen voor SharePoint)
 - Google Chrome
 - Mozilla Firefox
 - Safari
-- Internet Explorer 11 (with limitations)
+- Internet Explorer 11 (met beperkingen)
 
-## Customization
+## Aanpassing
 
-### Modify Colors
-Edit the CSS in the `<style>` section:
+### Kleuren Wijzigen
+Bewerk de CSS in de `<style>` sectie:
 ```css
 .search-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 ```
 
-### Add More Filters
-Add new filter groups in the HTML:
+### Meer Filters Toevoegen
+Voeg nieuwe filter groepen toe in de HTML:
 ```html
 <div class="filter-group">
-    <label for="newFilter">New Filter</label>
+    <label for="newFilter">Nieuw Filter</label>
     <select id="newFilter" onchange="performSearch()">
-        <option value="">All</option>
+        <option value="">Alle</option>
     </select>
 </div>
 ```
 
-### Adjust Ranking Weights
-Modify the scoring in the `rankResults()` function:
+### Ranking Gewichten Aanpassen
+Wijzig de scoring in de `rankResults()` functie:
 ```javascript
-// Increase importance of title matches
+// Verhoog het belang van titel matches
 const titleMatches = (titleLower.match(new RegExp(term, 'g')) || []).length;
-relatedScore += titleMatches * 100; // Changed from 50 to 100
+relatedScore += titleMatches * 100; // Gewijzigd van 50 naar 100
 ```
 
-## Testing
+## Testen
 
 ### Test Cases
 
-1. **Exact Match Test**:
-   - Search: "SharePoint Server 2019"
-   - Expected: Documents with exact title match appear first with green badge
+1. **Exacte Match Test**:
+   - Zoeken: "SharePoint Server 2019"
+   - Verwacht: Documenten met exacte titel match verschijnen eerst met groene badge
 
-2. **Almost Exact Test**:
-   - Search: "SharePoint 2019"
-   - Expected: Documents containing both terms appear with orange badge
+2. **Bijna Exacte Test**:
+   - Zoeken: "SharePoint 2019"
+   - Verwacht: Documenten die beide termen bevatten verschijnen met oranje badge
 
-3. **Related Test**:
-   - Search: "document management"
-   - Expected: Related documents appear with blue badge
+3. **Gerelateerde Test**:
+   - Zoeken: "document beheer"
+   - Verwacht: Gerelateerde documenten verschijnen met blauwe badge
 
 4. **Filter Test**:
-   - Apply file type filter to "Word Documents"
-   - Expected: Only .docx files shown
+   - Pas bestandstype filter toe op "Word Documenten"
+   - Verwacht: Alleen .docx bestanden getoond
 
-5. **Date Filter Test**:
-   - Set date range to "Past Week"
-   - Expected: Only recent documents shown
+5. **Datum Filter Test**:
+   - Stel datumbereik in op "Afgelopen Week"
+   - Verwacht: Alleen recente documenten getoond
 
-## Troubleshooting
+## Probleemoplossing
 
-### No Results Found
-- Check if SharePoint Search Service is running
-- Verify user has permissions to search content
-- Try broader search terms
-- Remove filters to expand results
+### Geen Resultaten Gevonden
+- Controleer of SharePoint Search Service draait
+- Verifieer dat gebruiker machtigingen heeft om inhoud te zoeken
+- Probeer bredere zoektermen
+- Verwijder filters om resultaten uit te breiden
 
-### Mock Data Appears
-- SharePoint REST API is not accessible
-- Check browser console for errors
-- Verify page is accessed from SharePoint site
-- Ensure proper authentication
+### Mock Data Verschijnt
+- SharePoint REST API is niet toegankelijk
+- Controleer browser console voor fouten
+- Verifieer dat pagina vanuit SharePoint site wordt benaderd
+- Zorg voor juiste authenticatie
 
-### Styling Issues
-- Clear browser cache
-- Check for CSS conflicts with SharePoint master page
-- Verify page loads in a clean frame (no master page)
+### Styling Problemen
+- Wis browser cache
+- Controleer op CSS conflicten met SharePoint master page
+- Verifieer dat pagina laadt in een schoon frame (geen master page)
 
-## Performance
+## Prestaties
 
-- Initial load: ~1-2 seconds
-- Search execution: ~500ms - 2 seconds (depends on index size)
-- Results rendering: < 100ms
-- Supports up to 50 results per page (configurable)
+- Initiële laadtijd: ~1-2 seconden
+- Zoek uitvoering: ~500ms - 2 seconden (afhankelijk van index grootte)
+- Resultaten weergave: < 100ms
+- Ondersteunt tot 50 resultaten per pagina (configureerbaar)
 
-## Security
+## Beveiliging
 
-- Uses SharePoint authentication
-- No credentials stored in page
+- Gebruikt SharePoint authenticatie
+- Geen credentials opgeslagen in pagina
 - CORS-compliant REST API calls
-- XSS protection through proper escaping
-- No eval() or dangerous functions used
+- XSS bescherming door juiste escaping
+- Geen eval() of gevaarlijke functies gebruikt
 
-## Future Enhancements
+## Toekomstige Verbeteringen
 
-Potential improvements:
-- Pagination for large result sets
-- Search suggestions and autocomplete
-- Result previews and thumbnails
-- Export search results
-- Save and share searches
-- Advanced query syntax support
-- People search integration
-- Analytics and search insights
+Mogelijke verbeteringen:
+- Paginering voor grote resultatensets
+- Zoek suggesties en autocomplete
+- Resultaat previews en thumbnails
+- Zoekresultaten exporteren
+- Zoekopdrachten opslaan en delen
+- Geavanceerde query syntax ondersteuning
+- Personen zoek integratie
+- Analytics en zoek inzichten
 
-## Support
+## Ondersteuning
 
-For issues or questions:
-1. Check SharePoint logs
-2. Verify search service configuration
-3. Test with mock data first
-4. Review browser console errors
+Voor problemen of vragen:
+1. Controleer SharePoint logs
+2. Verifieer zoekservice configuratie
+3. Test eerst met mock data
+4. Bekijk browser console fouten
 
-## License
+## Licentie
 
-This implementation is provided as-is for SharePoint Server 2019 environments.
+Deze implementatie wordt aangeboden zoals het is voor SharePoint Server 2019 omgevingen.

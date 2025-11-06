@@ -1,135 +1,135 @@
-# Security Summary
+# Beveiligings Samenvatting
 
-## Security Review - ZoekMasjien Search Center
+## Beveiligings Review - ZoekMasjien Zoekcentrum
 
-**Date:** November 6, 2025  
-**Reviewed By:** Automated Code Review + Manual Security Fixes  
-**Status:** ✅ SECURE - All identified vulnerabilities have been addressed
+**Datum:** 6 november 2025  
+**Beoordeeld door:** Geautomatiseerde Code Review + Handmatige Beveiligings Fixes  
+**Status:** ✅ VEILIG - Alle geïdentificeerde kwetsbaarheden zijn opgelost
 
-## Security Measures Implemented
+## Geïmplementeerde Beveiligingsmaatregelen
 
-### 1. Input Sanitization ✅
-**Location:** `search-center.aspx` lines 418-440
+### 1. Invoer Sanitatie ✅
+**Locatie:** `search-center.aspx` regels 418-440
 
-- **File Type Filter**: Sanitized to allow only alphanumeric characters
-- **Author Filter**: Escape double quotes to prevent query injection
-- **Site Filter**: Sanitized to allow only safe path characters (alphanumeric, hyphens, underscores, slashes)
+- **Bestandstype Filter**: Gesaniteerd om alleen alfanumerieke tekens toe te staan
+- **Auteur Filter**: Escape dubbele aanhalingstekens om query injectie te voorkomen
+- **Site Filter**: Gesaniteerd om alleen veilige pad tekens toe te staan (alfanumeriek, koppeltekens, underscores, slashes)
 
-**Implementation:**
+**Implementatie:**
 ```javascript
-// Sanitize fileType to only allow alphanumeric characters
+// Saniteer bestandstype om alleen alfanumerieke tekens toe te staan
 const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');
 
-// Escape quotes in author name
+// Escape aanhalingstekens in auteur naam
 const sanitizedAuthor = filters.author.replace(/"/g, '\\"');
 
-// Sanitize site to only allow safe characters
+// Saniteer site om alleen veilige tekens toe te staan
 const sanitizedSite = filters.site.replace(/[^a-zA-Z0-9\-_\/]/g, '');
 ```
 
 ### 2. Query Parameter Encoding ✅
-**Location:** `search-center.aspx` line 445
+**Locatie:** `search-center.aspx` regel 445
 
-All search queries are properly encoded using `encodeURIComponent()` before being sent to the SharePoint REST API.
+Alle zoekopdrachten worden correct gecodeerd met `encodeURIComponent()` voordat ze naar de SharePoint REST API worden gestuurd.
 
-### 3. XSS Protection ✅
-**Location:** Throughout the application
+### 3. XSS Bescherming ✅
+**Locatie:** Door de hele applicatie
 
-- Search term highlighting uses regex replacement with escaped special characters
-- All user input is escaped before being inserted into the DOM
-- `escapeRegex()` function properly escapes special regex characters
+- Zoekterm markering gebruikt regex vervanging met ge-escaped speciale tekens
+- Alle gebruikersinvoer wordt ge-escaped voordat het in de DOM wordt ingevoegd
+- `escapeRegex()` functie escaped speciale regex tekens correct
 
-### 4. Word Boundary Protection ✅
-**Location:** `search-center.aspx` line 571, `demo.html` line 628
+### 4. Woord Grens Bescherming ✅
+**Locatie:** `search-center.aspx` regel 571, `demo.html` regel 628
 
-Fuzzy matching now uses word boundary detection (`\b`) to prevent false matches:
+Fuzzy matching gebruikt nu woord grens detectie (`\b`) om valse matches te voorkomen:
 ```javascript
 const fuzzyPattern = '\\b' + escapeRegex(term.substring(0, term.length - 1));
 ```
 
-This prevents "cats" from matching unrelated words like "category".
+Dit voorkomt dat "katten" overeenkomt met ongerelateerde woorden zoals "categorie".
 
-## Vulnerabilities Identified and Fixed
+## Geïdentificeerde en Opgeloste Kwetsbaarheden
 
-### ✅ Fixed: Query Injection via Filter Parameters
-**Severity:** HIGH  
-**Status:** FIXED
+### ✅ Opgelost: Query Injectie via Filter Parameters
+**Ernst:** HOOG  
+**Status:** OPGELOST
 
-**Original Issue:** Filter values were directly concatenated into search queries without sanitization.
+**Oorspronkelijk Probleem:** Filter waarden werden direct samengevoegd in zoekopdrachten zonder sanitatie.
 
-**Fix Applied:** All filter inputs are now sanitized with appropriate character whitelists before being added to the query.
+**Toegepaste Fix:** Alle filter invoer wordt nu gesaniteerd met juiste karakterwhitelists voordat het aan de query wordt toegevoegd.
 
-### ✅ Fixed: Fuzzy Matching Logic Flaw
-**Severity:** LOW  
-**Status:** FIXED
+### ✅ Opgelost: Fuzzy Matching Logica Fout
+**Ernst:** LAAG  
+**Status:** OPGELOST
 
-**Original Issue:** Fuzzy matching could match unrelated words that happened to start with the truncated search term.
+**Oorspronkelijk Probleem:** Fuzzy matching kon ongerelateerde woorden matchen die toevallig begonnen met de ingekorte zoekterm.
 
-**Fix Applied:** Added word boundary detection to ensure fuzzy matches only occur at word boundaries.
+**Toegepaste Fix:** Woord grens detectie toegevoegd om ervoor te zorgen dat fuzzy matches alleen voorkomen op woord grenzen.
 
-### ✅ Fixed: Date Calculation Accuracy
-**Severity:** LOW  
-**Status:** FIXED
+### ✅ Opgelost: Datum Berekening Nauwkeurigheid
+**Ernst:** LAAG  
+**Status:** OPGELOST
 
-**Original Issue:** Used `Math.ceil()` for date differences, causing inaccurate "days ago" displays.
+**Oorspronkelijk Probleem:** Gebruikte `Math.ceil()` voor datum verschillen, wat onnauwkeurige "dagen geleden" weergaves veroorzaakte.
 
-**Fix Applied:** Changed to `Math.floor()` for more accurate date calculations.
+**Toegepaste Fix:** Gewijzigd naar `Math.floor()` voor meer nauwkeurige datum berekeningen.
 
-### ✅ Fixed: Unused Variable
-**Severity:** INFO  
-**Status:** FIXED
+### ✅ Opgelost: Ongebruikte Variabele
+**Ernst:** INFO  
+**Status:** OPGELOST
 
-**Original Issue:** `searchCache` variable was declared but never used.
+**Oorspronkelijk Probleem:** `searchCache` variabele was gedeclareerd maar nooit gebruikt.
 
-**Fix Applied:** Removed the unused variable.
+**Toegepaste Fix:** De ongebruikte variabele verwijderd.
 
-## Security Best Practices Followed
+## Gevolgde Beveiligings Best Practices
 
-1. ✅ **No Sensitive Data in Client-Side Code**: No credentials or secrets stored in JavaScript
-2. ✅ **CORS Compliance**: Uses SharePoint's built-in CORS handling via REST API
-3. ✅ **Authentication**: Relies on SharePoint's authentication system
-4. ✅ **Input Validation**: All user inputs are validated and sanitized
-5. ✅ **Output Encoding**: All dynamic content is properly encoded
-6. ✅ **No eval()**: No use of `eval()` or similar dangerous functions
-7. ✅ **Content Security**: Proper escaping prevents XSS attacks
+1. ✅ **Geen Gevoelige Data in Client-Side Code**: Geen credentials of geheimen opgeslagen in JavaScript
+2. ✅ **CORS Compliance**: Gebruikt SharePoint's ingebouwde CORS afhandeling via REST API
+3. ✅ **Authenticatie**: Vertrouwt op SharePoint's authenticatie systeem
+4. ✅ **Invoer Validatie**: Alle gebruikersinvoer wordt gevalideerd en gesaniteerd
+5. ✅ **Uitvoer Encoding**: Alle dynamische inhoud wordt correct gecodeerd
+6. ✅ **Geen eval()**: Geen gebruik van `eval()` of vergelijkbare gevaarlijke functies
+7. ✅ **Content Beveiliging**: Juiste escaping voorkomt XSS aanvallen
 
-## Remaining Considerations
+## Resterende Overwegingen
 
-### Low-Risk Items (Acceptable)
+### Laag-Risico Items (Acceptabel)
 
-1. **Client-Side Search Logic**: The search ranking algorithm runs in the browser, which is acceptable for this use case as it doesn't expose sensitive data.
+1. **Client-Side Zoek Logica**: Het zoek ranking algoritme draait in de browser, wat acceptabel is voor deze use case omdat het geen gevoelige data blootstelt.
 
-2. **Mock Data in Demo**: The `demo.html` file contains hardcoded mock data for demonstration purposes. This is clearly labeled and expected behavior.
+2. **Mock Data in Demo**: Het `demo.html` bestand bevat hardcoded mock data voor demonstratie doeleinden. Dit is duidelijk gelabeld en verwacht gedrag.
 
-3. **SharePoint REST API Dependency**: The application depends on SharePoint's REST API security. This is appropriate as SharePoint Server 2019 has enterprise-grade security.
+3. **SharePoint REST API Afhankelijkheid**: De applicatie is afhankelijk van SharePoint's REST API beveiliging. Dit is gepast omdat SharePoint Server 2019 enterprise-grade beveiliging heeft.
 
-## Security Testing Performed
+## Uitgevoerde Beveiligings Tests
 
-- ✅ Input sanitization tested with special characters
-- ✅ Query injection attempts blocked by sanitization
-- ✅ XSS attempts prevented by proper escaping
-- ✅ Fuzzy matching tested to ensure no false positives
-- ✅ Date calculations verified for accuracy
-- ✅ All user inputs validated and sanitized
+- ✅ Invoer sanitatie getest met speciale tekens
+- ✅ Query injectie pogingen geblokkeerd door sanitatie
+- ✅ XSS pogingen voorkomen door juiste escaping
+- ✅ Fuzzy matching getest om geen valse positieven te verzekeren
+- ✅ Datum berekeningen geverifieerd voor nauwkeurigheid
+- ✅ Alle gebruikersinvoer gevalideerd en gesaniteerd
 
 ## Compliance
 
-This implementation follows:
-- OWASP Top 10 security guidelines
-- SharePoint Server 2019 security best practices
-- Microsoft Security Development Lifecycle (SDL) principles
+Deze implementatie volgt:
+- OWASP Top 10 beveiligings richtlijnen
+- SharePoint Server 2019 beveiligings best practices
+- Microsoft Security Development Lifecycle (SDL) principes
 
-## Security Recommendations for Deployment
+## Beveiligings Aanbevelingen voor Implementatie
 
-1. **Host on HTTPS**: Always serve the search center over HTTPS in production
-2. **SharePoint Permissions**: Ensure proper SharePoint permissions are configured
-3. **Search Service**: Verify SharePoint Search Service is properly secured
-4. **Regular Updates**: Keep SharePoint Server 2019 updated with security patches
-5. **Access Control**: Use SharePoint's built-in access control for the search center page
-6. **Audit Logging**: Enable SharePoint audit logging for search queries if required
+1. **Host op HTTPS**: Serveer het zoekcentrum altijd over HTTPS in productie
+2. **SharePoint Machtigingen**: Zorg voor juiste SharePoint machtigingen configuratie
+3. **Zoek Service**: Verifieer dat SharePoint Search Service correct beveiligd is
+4. **Regelmatige Updates**: Houd SharePoint Server 2019 bijgewerkt met beveiligings patches
+5. **Toegangs Controle**: Gebruik SharePoint's ingebouwde toegangscontrole voor de zoekcentrum pagina
+6. **Audit Logging**: Schakel SharePoint audit logging in voor zoekopdrachten indien vereist
 
-## Conclusion
+## Conclusie
 
-All security vulnerabilities identified during code review have been successfully addressed. The search center is now secure for deployment in a SharePoint Server 2019 environment. No high-severity or medium-severity vulnerabilities remain.
+Alle beveiligings kwetsbaarheden geïdentificeerd tijdens code review zijn succesvol opgelost. Het zoekcentrum is nu veilig voor implementatie in een SharePoint Server 2019 omgeving. Er blijven geen hoge-ernst of gemiddelde-ernst kwetsbaarheden over.
 
-**Security Status: APPROVED FOR DEPLOYMENT** ✅
+**Beveiligings Status: GOEDGEKEURD VOOR IMPLEMENTATIE** ✅

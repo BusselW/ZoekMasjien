@@ -1,4 +1,27 @@
 <%@ Page Language="C#" %>
+<!--
+    ZoekMasjien - SharePoint 2019 Zoekcentrum
+    
+    CONFIGURATIE INSTRUCTIES:
+    =========================
+    
+    1. ZOEK BEREIK INSTELLEN:
+       Bewerk de SEARCH_CONFIG variabele in de JavaScript sectie:
+       
+    2. OPTIES VOOR searchScope:
+       - 'auto': Automatische detectie (aanbevolen)
+       - 'current-site': Zoek alleen in huidige site
+       - 'web-application': Zoek in alle site collections
+       - 'custom': Gebruik aangepaste URL
+       
+    3. DEPLOYMENT:
+       - Voor centrale zoekfunctie: plaats in root web application
+       - Voor site-specifieke zoekfunctie: plaats in gewenste site
+       
+    4. MACHTIGINGEN:
+       - Gebruikers hebben 'Read' rechten nodig op zoekbare content
+       - SharePoint Search Service moet draaien en geconfigureerd zijn
+-->
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -38,6 +61,20 @@
             font-size: 2.5rem;
             margin-bottom: 10px;
             font-weight: 300;
+        }
+
+        .search-scope-info {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 15px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+
+        .search-scope-info span {
+            font-weight: 500;
         }
 
         .search-box-wrapper {
@@ -285,6 +322,7 @@
 <body>
     <div class="search-header">
         <h1>Zoekcentrum</h1>
+        <div id="searchScope" class="search-scope-info">Zoekt in: <span id="scopeText">Laden...</span></div>
         <div class="search-box-wrapper">
             <input type="text" id="searchBox" class="search-box" placeholder="Zoek naar documenten, pagina's, personen..." />
             <button class="search-button" onclick="performSearch()">Zoeken</button>
@@ -324,12 +362,11 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="siteFilter">Site</label>
+                    <label for="siteFilter">Subsite</label>
                     <select id="siteFilter" onchange="performSearch()">
-                        <option value="">Alle Sites</option>
-                        <option value="site1">Teamsite</option>
-                        <option value="site2">Documentcentrum</option>
-                        <option value="site3">Projectsite</option>
+                        <option value="">Alle Subsites</option>
+                        <option value="/sites/MulderT">Hoofdsite (MulderT)</option>
+                        <!-- Subsites worden automatisch geladen via JavaScript -->
                     </select>
                 </div>
             </div>
@@ -353,11 +390,219 @@
     </div>
 
     <script type="text/javascript">
+        // ============================================================================
+        // CONFIGURATIE INSTELLINGEN
+        // ============================================================================
+        
+        // BELANGRIJK: Configureer deze instellingen voor jouw SharePoint omgeving
+        const SEARCH_CONFIG = {
+            // Aangepast voor MulderT site en alle subsites
+            searchScope: 'custom',
+            
+            // Basis site URL - alle subsites worden automatisch meegenomen
+            customSearchUrl: 'https://som.org.om.local/sites/MulderT',
+            
+            // Path filter voor site scope
+            basePath: '/sites/MulderT',
+            
+            // Zoek bronnen
+            searchSources: {
+                // Enterprise zoekresultaten (doorzoekt alle sites)
+                enterprise: '8413cd39-2156-4e00-b54d-11efd9abdb89',
+                // Lokale SharePoint resultaten (huidige site collectie)
+                local: 'b09a7990-05ea-4af9-81ef-edfab16c4e31',
+                // Personen zoeken
+                people: 'b09a7990-05ea-4af9-81ef-edfab16c4e32'
+            }
+        };
+        
         // Search state
         let currentQuery = '';
 
+        // ============================================================================
+        // ZOEK CONFIGURATIE FUNCTIES
+        // ============================================================================
+        
+        // Bepaal de juiste zoek URL gebaseerd op configuratie
+        function getSearchUrl() {
+            switch(SEARCH_CONFIG.searchScope) {
+                case 'current-site':
+                    // Zoek alleen in huidige site
+                    return _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : window.location.origin;
+                    
+                case 'web-application':
+                    // Zoek in hele web application (alle site collections)
+                    if (_spPageContextInfo && _spPageContextInfo.webAbsoluteUrl) {
+                        const url = _spPageContextInfo.webAbsoluteUrl;
+                        const match = url.match(/^(https?:\/\/[^\/]+)/);
+                        return match ? match[1] : window.location.origin;
+                    }
+                    return window.location.origin;
+                    
+                case 'custom':
+                    // Gebruik MulderT site URL - ga naar web application root voor search API
+                    const baseUrl = 'https://som.org.om.local';
+                    return baseUrl;
+                    
+                case 'auto':
+                default:
+                    // Fallback naar custom configuratie
+                    return 'https://som.org.om.local';
+            }
+        }
+        
+        // Bepaal de juiste search source ID
+        function getSearchSourceId() {
+            switch(SEARCH_CONFIG.searchScope) {
+                case 'current-site':
+                    return SEARCH_CONFIG.searchSources.local; // Lokale resultaten
+                case 'web-application':
+                case 'custom':
+                case 'auto':
+                default:
+                    return SEARCH_CONFIG.searchSources.enterprise; // Enterprise resultaten
+            }
+        }
+        
+        // Toon configuratie info aan gebruiker
+        function showSearchConfig() {
+            const searchUrl = getSearchUrl();
+            const sourceId = getSearchSourceId();
+            
+            // Update UI met scope informatie
+            const scopeElement = document.getElementById('scopeText');
+            if (scopeElement) {
+                let scopeText = '';
+                switch(SEARCH_CONFIG.searchScope) {
+                    case 'current-site':
+                        scopeText = 'Huidige site';
+                        break;
+                    case 'web-application':
+                        scopeText = 'Alle site collections';
+                        break;
+                    case 'custom':
+                        scopeText = 'MulderT site + alle subsites';
+                        break;
+                    case 'auto':
+                    default:
+                        scopeText = searchUrl.includes('/sites/') ? 'Alle site collections' : 'Huidige site';
+                        break;
+                }
+                
+                scopeElement.textContent = `${scopeText} (som.org.om.local)`;
+            }
+            
+            // Log voor debugging
+            console.log('ZoekMasjien Configuratie:', {
+                searchScope: SEARCH_CONFIG.searchScope,
+                searchUrl: searchUrl,
+                sourceId: sourceId,
+                currentSite: _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : 'Niet beschikbaar'
+            });
+        }
+
+        // Laad beschikbare subsites
+        function loadAvailableSubsites() {
+            const searchUrl = getSearchUrl();
+            const apiUrl = searchUrl + "/_api/search/query?querytext='ContentClass:STS_Web Path:\"" + 
+                          SEARCH_CONFIG.basePath + "*\"'&rowlimit=50&selectproperties='Title,Path'";
+
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'Content-Type': 'application/json;odata=verbose'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.d && data.d.query && data.d.query.PrimaryQueryResult) {
+                    const results = data.d.query.PrimaryQueryResult.RelevantResults.Table.Rows.results;
+                    populateSubsiteFilter(results);
+                }
+            })
+            .catch(error => {
+                console.log('Kan subsites niet laden, gebruik standaard opties:', error);
+                // Fallback naar bekende subsites
+                addDefaultSubsiteOptions();
+            });
+        }
+
+        // Vul subsite filter met gevonden subsites
+        function populateSubsiteFilter(subsites) {
+            const siteFilter = document.getElementById('siteFilter');
+            if (!siteFilter) return;
+
+            // Bewaar de huidige selectie
+            const currentValue = siteFilter.value;
+
+            // Verwijder alle behalve de eerste optie (Alle Subsites)
+            while (siteFilter.children.length > 2) {
+                siteFilter.removeChild(siteFilter.lastChild);
+            }
+
+            // Voeg gevonden subsites toe
+            const addedPaths = new Set();
+            subsites.forEach(subsite => {
+                const cells = subsite.Cells.results;
+                let title = '';
+                let path = '';
+                
+                cells.forEach(cell => {
+                    if (cell.Key === 'Title') title = cell.Value;
+                    if (cell.Key === 'Path') path = cell.Value;
+                });
+
+                if (path && !addedPaths.has(path)) {
+                    addedPaths.add(path);
+                    
+                    // Maak leesbare naam van pad
+                    const pathParts = path.replace('https://som.org.om.local', '').split('/').filter(p => p);
+                    const siteName = pathParts[pathParts.length - 1] || title || 'Onbekende Site';
+                    const displayName = title || siteName;
+                    
+                    const option = document.createElement('option');
+                    option.value = path.replace('https://som.org.om.local', '');
+                    option.textContent = displayName;
+                    siteFilter.appendChild(option);
+                }
+            });
+
+            // Herstel selectie als mogelijk
+            if (currentValue) {
+                siteFilter.value = currentValue;
+            }
+
+            console.log(`${addedPaths.size} subsites geladen voor filter`);
+        }
+
+        // Voeg standaard subsite opties toe als automatisch laden mislukt
+        function addDefaultSubsiteOptions() {
+            const siteFilter = document.getElementById('siteFilter');
+            if (!siteFilter) return;
+
+            const defaultOptions = [
+                { value: '/sites/MulderT/Documents', text: 'Documenten' },
+                { value: '/sites/MulderT/Lists', text: 'Lijsten' },
+                { value: '/sites/MulderT/SitePages', text: 'Site Pagina\'s' }
+            ];
+
+            defaultOptions.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                siteFilter.appendChild(optionElement);
+            });
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Toon configuratie info
+            showSearchConfig();
+            
+            // Laad beschikbare subsites
+            setTimeout(loadAvailableSubsites, 1000); // Kort uitstel voor SharePoint initialisatie
+            
             // Enable search on Enter key
             document.getElementById('searchBox').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -409,9 +654,12 @@
 
         // Execute SharePoint REST API search
         function executeSharePointSearch(query, filters) {
-            // Build the search query URL
-            const siteUrl = _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : window.location.origin;
+            // Bepaal de zoek URL gebaseerd op configuratie
+            const searchUrl = getSearchUrl();
             let searchQuery = query;
+
+            // Voeg altijd de basis path filter toe om alleen MulderT en subsites te doorzoeken
+            searchQuery += ' Path:"' + SEARCH_CONFIG.basePath + '*"';
 
             // Apply filters to the query with proper escaping
             if (filters.fileType) {
@@ -429,16 +677,20 @@
                 }
             }
             if (filters.site) {
-                // Sanitize site to only allow safe characters
+                // Sanitize site to only allow safe characters voor specifieke subsite
                 const sanitizedSite = filters.site.replace(/[^a-zA-Z0-9\-_\/]/g, '');
                 if (sanitizedSite) {
-                    searchQuery += ' Path:' + sanitizedSite;
+                    // Vervang de algemene path filter met specifieke subsite
+                    searchQuery = searchQuery.replace(' Path:"' + SEARCH_CONFIG.basePath + '*"', '');
+                    searchQuery += ' Path:"' + sanitizedSite + '*"';
                 }
             }
 
             // Build REST API URL
-            const apiUrl = siteUrl + "/_api/search/query?querytext='" + encodeURIComponent(searchQuery) + 
-                          "'&rowlimit=50&selectproperties='Title,Path,Author,Write,FileExtension,HitHighlightedSummary'";
+            const sourceId = getSearchSourceId();
+            const apiUrl = searchUrl + "/_api/search/query?querytext='" + encodeURIComponent(searchQuery) + 
+                          "'&rowlimit=50&selectproperties='Title,Path,Author,Write,FileExtension,HitHighlightedSummary'" +
+                          (sourceId ? "&sourceid='" + sourceId + "'" : "");
 
             // Make the API call
             fetch(apiUrl, {
@@ -704,47 +956,55 @@
             return date.toLocaleDateString('nl-NL');
         }
 
-        // Mock data for demonstration (fallback when SharePoint API is not available)
+        // Mockdata voor demonstratie (fallback wanneer SharePoint API niet beschikbaar is)
         function useMockData(query, filters) {
             const mockResults = [
                 {
-                    title: 'SharePoint Server 2019 Installation Guide',
-                    url: '/sites/docs/installation-guide.aspx',
-                    snippet: 'Complete guide for installing and configuring SharePoint Server 2019 in your environment.',
-                    author: 'John Smith',
+                    title: 'MulderT Project Documentatie',
+                    url: 'https://som.org.om.local/sites/MulderT/Documents/project-docs.docx',
+                    snippet: 'Volledige project documentatie voor het MulderT initiatief inclusief doelstellingen en planning.',
+                    author: 'T. Mulder',
                     modified: '2025-11-01T10:30:00Z',
-                    fileType: 'aspx'
-                },
-                {
-                    title: 'SharePoint 2019 Best Practices',
-                    url: '/sites/docs/best-practices.docx',
-                    snippet: 'Learn the best practices for SharePoint Server 2019 deployment and management.',
-                    author: 'Jane Doe',
-                    modified: '2025-10-28T14:20:00Z',
                     fileType: 'docx'
                 },
                 {
-                    title: 'Search Configuration in SharePoint',
-                    url: '/sites/docs/search-config.pdf',
-                    snippet: 'How to configure and optimize search functionality in SharePoint Server 2019.',
-                    author: 'Bob Johnson',
-                    modified: '2025-10-25T09:15:00Z',
+                    title: 'Proces Handleiding MulderT',
+                    url: 'https://som.org.om.local/sites/MulderT/SitePages/process-guide.aspx',
+                    snippet: 'Stap-voor-stap handleiding voor de MulderT werkprocessen en procedures.',
+                    author: 'J. de Vries',
+                    modified: '2025-10-28T14:20:00Z',
+                    fileType: 'aspx'
+                },
+                {
+                    title: 'Maandrapport Oktober 2025',
+                    url: 'https://som.org.om.local/sites/MulderT/Reports/monthly-report-oct.pdf',
+                    snippet: 'Overzicht van prestaties en activiteiten in oktober 2025 voor het MulderT project.',
+                    author: 'A. Bakker',
+                    modified: '2025-10-31T09:15:00Z',
                     fileType: 'pdf'
                 },
                 {
-                    title: 'Project Status Report',
-                    url: '/sites/projects/status-report.xlsx',
-                    snippet: 'Monthly project status report containing metrics and updates for all ongoing projects.',
-                    author: 'Alice Brown',
+                    title: 'Team Contact Lijst',
+                    url: 'https://som.org.om.local/sites/MulderT/Lists/Contacts/AllItems.aspx',
+                    snippet: 'Contactgegevens van alle teamleden betrokken bij het MulderT project.',
+                    author: 'Systeem',
                     modified: '2025-11-05T16:45:00Z',
-                    fileType: 'xlsx'
+                    fileType: 'aspx'
                 },
                 {
-                    title: 'Team Meeting Notes - SharePoint Migration',
-                    url: '/sites/team/meeting-notes.aspx',
-                    snippet: 'Notes from the team meeting discussing SharePoint migration strategies and timelines.',
-                    author: 'John Smith',
-                    modified: '2025-11-03T11:00:00Z',
+                    title: 'Vergadering Notities November',
+                    url: 'https://som.org.om.local/sites/MulderT/Documents/meeting-notes-nov.docx',
+                    snippet: 'Notities van de teamvergaderingen in november 2025 met actiepunten en beslissingen.',
+                    author: 'T. Mulder',
+                    modified: '2025-11-04T11:00:00Z',
+                    fileType: 'docx'
+                },
+                {
+                    title: 'Subsite Planning Portal',
+                    url: 'https://som.org.om.local/sites/MulderT/Planning/default.aspx',
+                    snippet: 'Planning en tijdlijn overzicht voor alle MulderT gerelateerde activiteiten en mijlpalen.',
+                    author: 'Planning Team',
+                    modified: '2025-11-02T13:30:00Z',
                     fileType: 'aspx'
                 }
             ];

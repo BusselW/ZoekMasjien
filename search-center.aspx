@@ -579,6 +579,9 @@
                 site: document.getElementById('siteFilter').value
             };
 
+            console.log('[Zoeken] Query:', query);
+            console.log('[Zoeken] Filters:', filters);
+
             // Execute search with SharePoint REST API
             executeSharePointSearch(query, filters);
         }
@@ -586,6 +589,9 @@
         // Execute SharePoint REST API search (aangepast met werkende KQL logica)
         function executeSharePointSearch(query, filters) {
             const zoekApiUrl = `${SEARCH_CONFIG.customSearchUrl}/_api/search/query`;
+            
+            console.log('[API] Basis URL:', SEARCH_CONFIG.customSearchUrl);
+            console.log('[API] API URL:', zoekApiUrl);
             
             // Bouw KQL query zoals in werkende implementatie
             let kqlQuery = "";
@@ -602,6 +608,8 @@
                     pathFilter = `Path:"https://som.org.om.local${sanitizedSite}*"`;
                 }
             }
+            
+            console.log('[KQL] Path filter:', pathFilter);
             
             // Bouw complete KQL query
             kqlQuery = `(${query} AND ${pathFilter}) AND (${algemeenFileTypeFilter}) AND NOT FileType:aspx`;
@@ -622,10 +630,12 @@
                 }
             }
             
-            console.log('[KQL Query]', kqlQuery);
+            console.log('[KQL] Complete query:', kqlQuery);
             
             const selectProperties = 'Title,Path,HitHighlightedSummary,LastModifiedTime,Author,FileType,Filename,ContentType';
             const apiUrl = `${zoekApiUrl}?querytext='${encodeURIComponent(kqlQuery)}'&selectproperties='${encodeURIComponent(selectProperties)}'&rowlimit=50`;
+            
+            console.log('[API] Volledige URL:', apiUrl);
 
             // Make the API call (zoals in werkende versie)
             fetch(apiUrl, {
@@ -635,22 +645,45 @@
                 }
             })
             .then(response => {
+                console.log('[API] Response status:', response.status);
+                console.log('[API] Response OK:', response.ok);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('[API Response]', data);
+                console.log('[API] Raw data ontvangen:', data);
+                
+                // Check data structuur
+                if (data.d) {
+                    console.log('[API] d property:', data.d);
+                    if (data.d.query) {
+                        console.log('[API] query property:', data.d.query);
+                        if (data.d.query.PrimaryQueryResult) {
+                            console.log('[API] PrimaryQueryResult:', data.d.query.PrimaryQueryResult);
+                            if (data.d.query.PrimaryQueryResult.RelevantResults) {
+                                console.log('[API] RelevantResults:', data.d.query.PrimaryQueryResult.RelevantResults);
+                                const totalResults = data.d.query.PrimaryQueryResult.RelevantResults.TotalRows;
+                                console.log('[API] Totaal aantal resultaten:', totalResults);
+                            }
+                        }
+                    }
+                }
+                
                 if (data.d && data.d.query && data.d.query.PrimaryQueryResult) {
                     const results = data.d.query.PrimaryQueryResult.RelevantResults.Table.Rows.results;
+                    console.log('[API] Aantal resultaten gevonden:', results.length);
+                    console.log('[API] Eerste resultaat (indien beschikbaar):', results[0]);
                     processAndDisplayResults(results, query, filters);
                 } else {
+                    console.warn('[API] Data structuur niet zoals verwacht');
                     displayNoResults();
                 }
             })
             .catch(error => {
-                console.error('Search error:', error);
+                console.error('[API] Fout opgetreden:', error);
+                console.error('[API] Error stack:', error.stack);
                 displayNoResults();
             });
         }
@@ -849,11 +882,13 @@
 
         // Display no results message
         function displayNoResults() {
+            console.log('[Display] Toon "geen resultaten" bericht');
             document.getElementById('resultsCount').textContent = 'Geen resultaten gevonden';
             document.getElementById('resultsContent').innerHTML = `
                 <div class="no-results">
                     <h3>Geen resultaten gevonden</h3>
                     <p>Probeer andere zoekwoorden of verwijder enkele filters</p>
+                    <p><strong>Debug info:</strong> Check de browser console (F12) voor technische details</p>
                 </div>
             `;
         }

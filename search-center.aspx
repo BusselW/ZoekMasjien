@@ -340,6 +340,8 @@
                     <label for="contentTypeFilter">Zoek in</label>
                     <select id="contentTypeFilter" onchange="toggleWeekmailCategorie()">
                         <option value="documenten">Documenten</option>
+                        <option value="schouwrapporten">Schouwrapporten</option>
+                        <option value="pleeglocaties">Bijzondere Pleeglocaties</option>
                         <option value="weekmail">Weekmail</option>
                         <option value="alle">Alles</option>
                     </select>
@@ -571,19 +573,22 @@
             });
         });
 
-        // Toggle weekmail categorie dropdown
+        // Toggle weekmail categorie dropdown en subsite filter
         function toggleWeekmailCategorie() {
             const contentType = document.getElementById('contentTypeFilter').value;
             const weekmailGroep = document.getElementById('weekmailCategorieGroep');
+            const subsiteFilterGroep = document.querySelector('.filter-group:has(#siteFilter)');
             
             if (contentType === 'weekmail') {
                 weekmailGroep.style.display = 'flex'; // Toon de categorie dropdown
-                console.log('[UI] Weekmail categorie dropdown getoond');
+                if (subsiteFilterGroep) subsiteFilterGroep.style.display = 'none'; // Verberg subsite filter
+                console.log('[UI] Weekmail categorie dropdown getoond, subsite filter verborgen');
             } else {
                 weekmailGroep.style.display = 'none'; // Verberg de categorie dropdown
+                if (subsiteFilterGroep) subsiteFilterGroep.style.display = 'flex'; // Toon subsite filter
                 // Reset de selectie
                 document.getElementById('weekmailCategorieFilter').value = '';
-                console.log('[UI] Weekmail categorie dropdown verborgen');
+                console.log('[UI] Weekmail categorie dropdown verborgen, subsite filter getoond');
             }
             
             // Voer direct een nieuwe zoekopdracht uit
@@ -663,11 +668,43 @@
             
             console.log('[KQL] Path filter:', pathFilter);
             
-            // Bepaal content type filter (Documenten vs Weekmail)
+            // Bepaal content type filter (Documenten vs Weekmail vs Schouwrapporten etc.)
             const contentTypeFilter = filters.contentType || 'documenten';
             console.log('[KQL] Content type filter:', contentTypeFilter);
             
-            if (contentTypeFilter === 'weekmail') {
+            // Definieer uitgezonderde paden voor documenten zoeken
+            const schouwrapportenPad = 'https://som.org.om.local/sites/MulderT/Kennis/Verkeersborden/5. Schouwrapporten';
+            const pleeglocatiesPad = 'https://som.org.om.local/sites/MulderT/Kennis/Algemeen/4. Pleeglocaties';
+            
+            if (contentTypeFilter === 'schouwrapporten') {
+                // SCHOUWRAPPORTEN FILTER: Zoek ALLEEN in Schouwrapporten folder
+                kqlQuery = `${query} AND Path:"${schouwrapportenPad}*"`;
+                
+                // Sluit ASPX pagina's uit
+                kqlQuery += ` AND NOT FileType:aspx`;
+                
+                // Alleen echte document types
+                const toegestaneTypes = ['doc','docx','xls','xlsx','ppt','pptx','pdf','txt','rtf'];
+                const typeFilter = toegestaneTypes.map(ext => `FileType:${ext}`).join(' OR ');
+                kqlQuery += ` AND (${typeFilter})`;
+                
+                console.log('[KQL] Schouwrapporten query:', kqlQuery);
+                
+            } else if (contentTypeFilter === 'pleeglocaties') {
+                // BIJZONDERE PLEEGLOCATIES FILTER: Zoek ALLEEN in Pleeglocaties folder
+                kqlQuery = `${query} AND Path:"${pleeglocatiesPad}*"`;
+                
+                // Sluit ASPX pagina's uit
+                kqlQuery += ` AND NOT FileType:aspx`;
+                
+                // Alleen echte document types
+                const toegestaneTypes = ['doc','docx','xls','xlsx','ppt','pptx','pdf','txt','rtf'];
+                const typeFilter = toegestaneTypes.map(ext => `FileType:${ext}`).join(' OR ');
+                kqlQuery += ` AND (${typeFilter})`;
+                
+                console.log('[KQL] Bijzondere Pleeglocaties query:', kqlQuery);
+                
+            } else if (contentTypeFilter === 'weekmail') {
                 // WEEKMAIL FILTER: Zoek alleen in SitePages met "Weekmail" in titel/content
                 const weekmailBasePath = '/sites/MulderT/Onderdelen/beoordelen';
                 
@@ -707,22 +744,26 @@
                 console.log('[KQL] Alles query:', kqlQuery);
                 
             } else {
-                // DOCUMENTEN FILTER (standaard): Zoals voorheen
+                // DOCUMENTEN FILTER (standaard): Zoals voorheen MAAR met uitzonderingen
                 kqlQuery = `${query} AND ${pathFilter}`;
                 
-                // Stap 2: Sluit ASPX pagina's uit
+                // Sluit ASPX pagina's uit
                 kqlQuery += ` AND NOT FileType:aspx`;
                 
-                // Stap 3: Alleen echte document types
+                // BELANGRIJK: Sluit schouwrapporten en pleeglocaties uit van normale documenten zoeken
+                kqlQuery += ` AND NOT Path:"${schouwrapportenPad}*"`;
+                kqlQuery += ` AND NOT Path:"${pleeglocatiesPad}*"`;
+                
+                // Alleen echte document types
                 const toegestaneTypes = ['doc','docx','xls','xlsx','ppt','pptx','pdf','txt','rtf'];
                 const typeFilter = toegestaneTypes.map(ext => `FileType:${ext}`).join(' OR ');
                 kqlQuery += ` AND (${typeFilter})`;
                 
-                console.log('[KQL] Documenten query:', kqlQuery);
+                console.log('[KQL] Documenten query (met uitzonderingen):', kqlQuery);
             }
             
             // Stap 4: Extra gebruiker filters (alleen voor documenten en alle content)
-            // Stap 4: Extra gebruiker filters (alleen voor documenten en alle content)
+            // Stap 4: Extra gebruiker filters (alleen voor documenten, schouwrapporten, pleeglocaties en alle content)
             if (contentTypeFilter !== 'weekmail') {
                 if (filters.fileType) {
                     const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');

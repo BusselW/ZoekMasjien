@@ -624,8 +624,11 @@
                         const snippetMatches = (snippetLower.match(new RegExp(term, 'g')) || []).length;
                         relatedScore += snippetMatches * 10;
 
+                        // Fuzzy matching - check for word boundary matches with partial term
                         if (term.length >= 4) {
-                            const fuzzyRegex = new RegExp(term.substring(0, term.length - 1), 'g');
+                            // Match words that start with the term (minus last char) as whole words
+                            const fuzzyPattern = '\\b' + escapeRegex(term.substring(0, term.length - 1));
+                            const fuzzyRegex = new RegExp(fuzzyPattern, 'gi');
                             const fuzzyMatches = (combinedText.match(fuzzyRegex) || []).length;
                             relatedScore += fuzzyMatches * 5;
                         }
@@ -734,7 +737,7 @@
             const date = new Date(dateString);
             const now = new Date();
             const diffTime = Math.abs(now - date);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays === 0) return 'Today';
             if (diffDays === 1) return 'Yesterday';

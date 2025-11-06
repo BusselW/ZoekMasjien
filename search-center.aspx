@@ -354,7 +354,6 @@
 
     <script type="text/javascript">
         // Search state
-        let searchCache = {};
         let currentQuery = '';
 
         // Initialize on page load
@@ -414,15 +413,27 @@
             const siteUrl = _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : window.location.origin;
             let searchQuery = query;
 
-            // Apply filters to the query
+            // Apply filters to the query with proper escaping
             if (filters.fileType) {
-                searchQuery += ' FileExtension:' + filters.fileType;
+                // Sanitize fileType to only allow alphanumeric characters
+                const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');
+                if (sanitizedFileType) {
+                    searchQuery += ' FileExtension:' + sanitizedFileType;
+                }
             }
             if (filters.author) {
-                searchQuery += ' Author:"' + filters.author + '"';
+                // Escape quotes in author name
+                const sanitizedAuthor = filters.author.replace(/"/g, '\\"');
+                if (sanitizedAuthor) {
+                    searchQuery += ' Author:"' + sanitizedAuthor + '"';
+                }
             }
             if (filters.site) {
-                searchQuery += ' Path:' + filters.site;
+                // Sanitize site to only allow safe characters
+                const sanitizedSite = filters.site.replace(/[^a-zA-Z0-9\-_\/]/g, '');
+                if (sanitizedSite) {
+                    searchQuery += ' Path:' + sanitizedSite;
+                }
             }
 
             // Build REST API URL
@@ -555,9 +566,11 @@
                         const snippetMatches = (snippetLower.match(new RegExp(term, 'g')) || []).length;
                         relatedScore += snippetMatches * 10;
 
-                        // Fuzzy matching - check for similar terms
+                        // Fuzzy matching - check for word boundary matches with partial term
                         if (term.length >= 4) {
-                            const fuzzyRegex = new RegExp(term.substring(0, term.length - 1), 'g');
+                            // Match words that start with the term (minus last char) as whole words
+                            const fuzzyPattern = '\\b' + escapeRegex(term.substring(0, term.length - 1));
+                            const fuzzyRegex = new RegExp(fuzzyPattern, 'gi');
                             const fuzzyMatches = (combinedText.match(fuzzyRegex) || []).length;
                             relatedScore += fuzzyMatches * 5;
                         }
@@ -680,7 +693,7 @@
             const date = new Date(dateString);
             const now = new Date();
             const diffTime = Math.abs(now - date);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays === 0) return 'Today';
             if (diffDays === 1) return 'Yesterday';

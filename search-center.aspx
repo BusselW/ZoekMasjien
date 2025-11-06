@@ -611,8 +611,11 @@
             
             console.log('[KQL] Path filter:', pathFilter);
             
-            // Bouw complete KQL query
-            kqlQuery = `(${query} AND ${pathFilter}) AND (${algemeenFileTypeFilter}) AND NOT FileType:aspx`;
+            // TEST: Begin met eenvoudige query zonder alle filters
+            // Stap 1: Alleen zoekterm en path (GEEN bestandstype filter)
+            kqlQuery = `${query} AND ${pathFilter}`;
+            
+            console.log('[KQL] Basis query (zonder filters):', kqlQuery);
             
             // Voeg bestandstype filter toe indien nodig
             if (filters.fileType) {

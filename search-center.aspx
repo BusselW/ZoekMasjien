@@ -353,6 +353,44 @@
     <script type="text/javascript">
         // Search state
         let currentQuery = '';
+        let siteBaseUrl = '';
+
+        // Get SharePoint site base URL
+        function getSiteBaseUrl() {
+            if (siteBaseUrl) return Promise.resolve(siteBaseUrl);
+            
+            // Try to get from current URL structure
+            const currentUrl = window.location.href;
+            let baseUrl = currentUrl.split('/_layouts')[0] || currentUrl.split('/SitePages')[0];
+            
+            // If we can't determine from URL, use origin
+            if (!baseUrl || baseUrl === currentUrl) {
+                baseUrl = window.location.origin;
+            }
+            
+            // Verify this is a valid SharePoint site by testing the API
+            return fetch(baseUrl + '/_api/web', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    siteBaseUrl = baseUrl;
+                    return baseUrl;
+                } else {
+                    // Fallback to origin if the detected URL doesn't work
+                    siteBaseUrl = window.location.origin;
+                    return window.location.origin;
+                }
+            })
+            .catch(() => {
+                // If API call fails, use origin as fallback
+                siteBaseUrl = window.location.origin;
+                return window.location.origin;
+            });
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -363,27 +401,31 @@
                 }
             });
             
-            // Load sub-sites for filter dropdown
-            loadSubSites();
+            // Initialize site URL and load sub-sites
+            getSiteBaseUrl().then(() => {
+                loadSubSites();
+            });
         });
 
         // Load sub-sites for filter dropdown
         function loadSubSites() {
             const siteFilter = document.getElementById('siteFilter');
             
-            // Get the current site URL
-            const siteUrl = _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : window.location.origin;
+            // Use the determined base URL
+            const baseUrl = siteBaseUrl || window.location.origin;
             
             // Build REST API URL to get sub-sites
-            const apiUrl = siteUrl + "/_api/web/webs?$select=Title,ServerRelativeUrl,Url&$orderby=Title";
+            const apiUrl = baseUrl + "/_api/web/webs?$select=Title,ServerRelativeUrl,Url&$orderby=Title";
             
             // Make the API call to get sub-sites
             fetch(apiUrl, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json;odata=verbose',
-                    'Content-Type': 'application/json;odata=verbose'
-                }
+                    'Content-Type': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
             })
             .then(response => response.json())
             .then(data => {
@@ -399,9 +441,13 @@
                         siteFilter.appendChild(option);
                     });
                     
-                    // Add current site as well
+                    // Add current site as well - get from API response or derive from URL
                     const currentSiteOption = document.createElement('option');
-                    currentSiteOption.value = _spPageContextInfo ? _spPageContextInfo.webServerRelativeUrl : '/';
+                    // Extract current site path from URL
+                    const currentPath = window.location.pathname;
+                    const sitePath = currentPath.includes('/sites/') ? 
+                        currentPath.substring(0, currentPath.indexOf('/', currentPath.indexOf('/sites/') + 7)) : '/';
+                    currentSiteOption.value = sitePath;
                     currentSiteOption.textContent = 'Huidige Site';
                     siteFilter.insertBefore(currentSiteOption, siteFilter.children[1]);
                 }
@@ -463,8 +509,8 @@
 
         // Execute SharePoint REST API search
         function executeSharePointSearch(query, filters) {
-            // Build the search query URL
-            const siteUrl = _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : window.location.origin;
+            // Use the determined site URL
+            const siteUrl = siteBaseUrl || window.location.origin;
             let searchQuery = query;
 
             // Apply filters to the query with proper escaping
@@ -511,13 +557,15 @@
             
             apiUrl += "&selectproperties='Title,Path,Author,Write,FileExtension,HitHighlightedSummary,SiteTitle,WebTemplate'";
 
-            // Make the API call
+            // Make the API call with proper headers for SharePoint
             fetch(apiUrl, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json;odata=verbose',
-                    'Content-Type': 'application/json;odata=verbose'
-                }
+                    'Content-Type': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
             })
             .then(response => response.json())
             .then(data => {
@@ -529,7 +577,11 @@
                 }
             })
             .catch(error => {
-                console.error('Search error:', error);
+                console.error('Search API error:', error);
+                console.warn('Falling back to mock data. Check if:', 
+                    '\n1. SharePoint Search Service is running',
+                    '\n2. User has search permissions',
+                    '\n3. Site URL is correct:', siteUrl);
                 // Fallback to mock data for demonstration
                 useMockData(query, filters);
             });

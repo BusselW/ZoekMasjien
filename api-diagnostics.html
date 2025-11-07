@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SharePoint API Diagnostics</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .diagnostic-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #106ebe;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 SharePoint API Diagnostics</h1>
+    <p>Use this page to diagnose SharePoint API connectivity issues</p>
+
+    <div class="diagnostic-section">
+        <h2>🌐 URL Detection</h2>
+        <button class="test-button" onclick="testUrlDetection()">Test URL Detection</button>
+        <div id="urlResults"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>🔌 API Connectivity</h2>
+        <button class="test-button" onclick="testWebApi()">Test Web API</button>
+        <button class="test-button" onclick="testSearchApi()">Test Search API</button>
+        <button class="test-button" onclick="testSubsitesApi()">Test Subsites API</button>
+        <div id="apiResults"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>🔍 Search Query Test</h2>
+        <input type="text" id="testQuery" placeholder="Enter test search query" value="SharePoint" style="width: 300px; padding: 8px; margin-right: 10px;">
+        <button class="test-button" onclick="testSearchQuery()">Test Search</button>
+        <div id="searchResults"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h2>📋 Diagnostic Information</h2>
+        <div id="diagnosticInfo"></div>
+    </div>
+
+    <script>
+        let detectedSiteUrl = '';
+
+        function addResult(containerId, type, title, content) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `<h4>${title}</h4><div>${content}</div>`;
+            container.appendChild(div);
+        }
+
+        function testUrlDetection() {
+            const container = document.getElementById('urlResults');
+            container.innerHTML = '';
+
+            const currentUrl = window.location.href;
+            const origin = window.location.origin;
+            const pathname = window.location.pathname;
+
+            // Method 1: Split by common SharePoint paths
+            let baseUrl1 = currentUrl.split('/_layouts')[0] || currentUrl.split('/SitePages')[0];
+            if (baseUrl1 === currentUrl) baseUrl1 = origin;
+
+            // Method 2: Extract site path from URL
+            let baseUrl2 = origin;
+            if (pathname.includes('/sites/')) {
+                const sitePath = pathname.substring(0, pathname.indexOf('/', pathname.indexOf('/sites/') + 7));
+                baseUrl2 = origin + sitePath;
+            }
+
+            addResult('urlResults', 'info', 'Current URL Analysis', `
+                <strong>Full URL:</strong> ${currentUrl}<br>
+                <strong>Origin:</strong> ${origin}<br>
+                <strong>Pathname:</strong> ${pathname}<br>
+                <strong>Method 1 (layouts/SitePages):</strong> ${baseUrl1}<br>
+                <strong>Method 2 (sites path):</strong> ${baseUrl2}
+            `);
+
+            // Test which URL works
+            testSiteUrl(baseUrl1, 'Method 1');
+            if (baseUrl1 !== baseUrl2) {
+                testSiteUrl(baseUrl2, 'Method 2');
+            }
+        }
+
+        function testSiteUrl(url, method) {
+            fetch(url + '/_api/web', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    detectedSiteUrl = url;
+                    addResult('urlResults', 'success', `${method} - SUCCESS`, `
+                        <strong>Working URL:</strong> ${url}<br>
+                        <strong>Status:</strong> ${response.status} ${response.statusText}
+                    `);
+                    return response.json();
+                } else {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+            })
+            .then(data => {
+                if (data.d) {
+                    addResult('urlResults', 'info', `${method} - Site Info`, `
+                        <strong>Site Title:</strong> ${data.d.Title || 'N/A'}<br>
+                        <strong>Site URL:</strong> ${data.d.Url || 'N/A'}<br>
+                        <strong>Server URL:</strong> ${data.d.ServerRelativeUrl || 'N/A'}
+                    `);
+                }
+            })
+            .catch(error => {
+                addResult('urlResults', 'error', `${method} - FAILED`, `
+                    <strong>URL:</strong> ${url}<br>
+                    <strong>Error:</strong> ${error.message}
+                `);
+            });
+        }
+
+        function testWebApi() {
+            const container = document.getElementById('apiResults');
+            const url = detectedSiteUrl || window.location.origin;
+            
+            addResult('apiResults', 'info', 'Testing Web API', `Testing: ${url}/_api/web`);
+
+            fetch(url + '/_api/web', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    addResult('apiResults', 'success', 'Web API - SUCCESS', `Status: ${response.status}`);
+                    return response.json();
+                } else {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+            })
+            .then(data => {
+                addResult('apiResults', 'info', 'Web API Response', `<pre>${JSON.stringify(data.d, null, 2)}</pre>`);
+            })
+            .catch(error => {
+                addResult('apiResults', 'error', 'Web API - FAILED', error.message);
+            });
+        }
+
+        function testSearchApi() {
+            const url = detectedSiteUrl || window.location.origin;
+            const searchUrl = url + "/_api/search/query?querytext='SharePoint'&rowlimit=5";
+            
+            addResult('apiResults', 'info', 'Testing Search API', `Testing: ${searchUrl}`);
+
+            fetch(searchUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    addResult('apiResults', 'success', 'Search API - SUCCESS', `Status: ${response.status}`);
+                    return response.json();
+                } else {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+            })
+            .then(data => {
+                if (data.d && data.d.query) {
+                    const resultCount = data.d.query.PrimaryQueryResult ? 
+                        data.d.query.PrimaryQueryResult.RelevantResults.RowCount : 0;
+                    addResult('apiResults', 'success', 'Search Results', `Found ${resultCount} results`);
+                } else {
+                    addResult('apiResults', 'error', 'Search API - No Results', 'No query results in response');
+                }
+            })
+            .catch(error => {
+                addResult('apiResults', 'error', 'Search API - FAILED', error.message);
+            });
+        }
+
+        function testSubsitesApi() {
+            const url = detectedSiteUrl || window.location.origin;
+            const subsitesUrl = url + "/_api/web/webs?$select=Title,ServerRelativeUrl&$orderby=Title";
+            
+            addResult('apiResults', 'info', 'Testing Subsites API', `Testing: ${subsitesUrl}`);
+
+            fetch(subsitesUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    addResult('apiResults', 'success', 'Subsites API - SUCCESS', `Status: ${response.status}`);
+                    return response.json();
+                } else {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+            })
+            .then(data => {
+                if (data.d && data.d.results) {
+                    const sites = data.d.results.map(site => `${site.Title} (${site.ServerRelativeUrl})`).join('<br>');
+                    addResult('apiResults', 'success', `Found ${data.d.results.length} Subsites`, sites || 'No subsites found');
+                } else {
+                    addResult('apiResults', 'error', 'Subsites API - No Results', 'No subsites in response');
+                }
+            })
+            .catch(error => {
+                addResult('apiResults', 'error', 'Subsites API - FAILED', error.message);
+            });
+        }
+
+        function testSearchQuery() {
+            const query = document.getElementById('testQuery').value || 'SharePoint';
+            const url = detectedSiteUrl || window.location.origin;
+            const searchUrl = url + `/_api/search/query?querytext='${encodeURIComponent(query)}'&rowlimit=10&selectproperties='Title,Path,Author'`;
+            
+            document.getElementById('searchResults').innerHTML = '';
+            addResult('searchResults', 'info', 'Testing Custom Search', `Query: "${query}"`);
+
+            fetch(searchUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+            })
+            .then(data => {
+                if (data.d && data.d.query && data.d.query.PrimaryQueryResult) {
+                    const results = data.d.query.PrimaryQueryResult.RelevantResults.Table.Rows.results;
+                    if (results.length > 0) {
+                        const resultsHtml = results.map(row => {
+                            const cells = row.Cells.results;
+                            const title = cells.find(c => c.Key === 'Title')?.Value || 'No Title';
+                            const path = cells.find(c => c.Key === 'Path')?.Value || 'No Path';
+                            return `<strong>${title}</strong><br><small>${path}</small>`;
+                        }).join('<br><br>');
+                        
+                        addResult('searchResults', 'success', `Found ${results.length} Results`, resultsHtml);
+                    } else {
+                        addResult('searchResults', 'info', 'No Results', 'Search returned no results');
+                    }
+                } else {
+                    addResult('searchResults', 'error', 'Invalid Response', 'Search API returned invalid response structure');
+                }
+            })
+            .catch(error => {
+                addResult('searchResults', 'error', 'Search Failed', error.message);
+            });
+        }
+
+        // Auto-run URL detection on load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show diagnostic info
+            const diagnosticInfo = document.getElementById('diagnosticInfo');
+            diagnosticInfo.innerHTML = `
+                <div class="info">
+                    <h4>Browser Information</h4>
+                    <strong>User Agent:</strong> ${navigator.userAgent}<br>
+                    <strong>Current Time:</strong> ${new Date().toISOString()}<br>
+                    <strong>Cookies Enabled:</strong> ${navigator.cookieEnabled}<br>
+                    <strong>Referrer:</strong> ${document.referrer || 'None'}
+                </div>
+            `;
+            
+            // Auto-run URL detection
+            setTimeout(testUrlDetection, 1000);
+        });
+    </script>
+</body>
+</html>

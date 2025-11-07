@@ -412,6 +412,7 @@
                 siteFilter.innerHTML = `
                     <option value="">Alle Sites</option>
                     <option value="/sites/mulderT">MulderT</option>
+                    <option value="/sites/mulderT/Kennis">MulderT/Kennis</option>
                     <option value="/sites/team">Teamsite</option>
                     <option value="/sites/docs">Documentcentrum</option>
                     <option value="/sites/projects">Projectsite</option>
@@ -472,6 +473,11 @@
                 const sanitizedFileType = filters.fileType.replace(/[^a-zA-Z0-9]/g, '');
                 if (sanitizedFileType) {
                     searchQuery += ' FileExtension:' + sanitizedFileType;
+                    
+                    // For document filters, exclude 'Weekmail' files
+                    if (sanitizedFileType === 'docx' || sanitizedFileType === 'pdf' || sanitizedFileType === 'xlsx' || sanitizedFileType === 'pptx') {
+                        searchQuery += ' -Title:Weekmail*';
+                    }
                 }
             }
             if (filters.author) {
@@ -485,8 +491,8 @@
                 // Sanitize site to only allow safe characters
                 const sanitizedSite = filters.site.replace(/[^a-zA-Z0-9\-_\/]/g, '');
                 if (sanitizedSite) {
-                    // For specific site, search only within that site and its sub-sites
-                    searchQuery += ' Path:"' + sanitizedSite + '"';
+                    // For specific site, search within that site and its sub-sites using wildcard
+                    searchQuery += ' Path:"' + sanitizedSite + '*"';
                 }
             }
 
@@ -543,9 +549,16 @@
                     result[cell.Key] = cell.Value;
                 });
 
+                // Extract filename from path for better matching
+                const path = result.Path || '#';
+                const filename = path.split('/').pop() || '';
+                const filenameWithoutExt = filename.replace(/\.[^/.]+$/, ''); // Remove file extension
+                
                 return {
                     title: result.Title || 'Untitled',
-                    url: result.Path || '#',
+                    filename: filename,
+                    filenameWithoutExt: filenameWithoutExt,
+                    url: path,
                     snippet: result.HitHighlightedSummary || '',
                     author: result.Author || 'Unknown',
                     modified: result.Write || '',
@@ -568,19 +581,35 @@
             return results.map(result => {
                 const titleLower = result.title.toLowerCase();
                 const snippetLower = result.snippet.toLowerCase();
-                const combinedText = titleLower + ' ' + snippetLower;
+                const filenameLower = (result.filenameWithoutExt || '').toLowerCase();
+                const combinedText = titleLower + ' ' + snippetLower + ' ' + filenameLower;
 
                 let score = 0;
                 let matchType = 'related';
 
                 // 1. EXACT MATCH - Highest priority (1000+ points)
+                // Check title exact match
                 if (titleLower === fullQuery) {
                     score = 1000;
                     matchType = 'exact';
-                } else if (titleLower.includes(fullQuery)) {
+                } 
+                // Check filename exact match (high priority for file-based searches)
+                else if (filenameLower === fullQuery) {
+                    score = 995;
+                    matchType = 'exact';
+                }
+                // Check if title contains full query
+                else if (titleLower.includes(fullQuery)) {
                     score = 900;
                     matchType = 'exact';
-                } else if (combinedText.includes(fullQuery)) {
+                } 
+                // Check if filename contains full query
+                else if (filenameLower.includes(fullQuery)) {
+                    score = 890;
+                    matchType = 'exact';
+                }
+                // Check combined text
+                else if (combinedText.includes(fullQuery)) {
                     score = 800;
                     matchType = 'exact';
                 }
@@ -593,26 +622,35 @@
                         score = 700;
                         matchType = 'almost';
                     } else {
-                        // Check if all query terms appear in combined text
-                        const allTermsInText = queryTerms.every(term => combinedText.includes(term));
-                        if (allTermsInText) {
-                            score = 600;
+                        // Check if all query terms appear in filename
+                        const allTermsInFilename = queryTerms.every(term => filenameLower.includes(term));
+                        if (allTermsInFilename) {
+                            score = 690;
                             matchType = 'almost';
-                        }
-                        // Check for partial term matches (fuzzy)
-                        else {
-                            let termMatchCount = 0;
-                            queryTerms.forEach(term => {
-                                if (titleLower.includes(term)) {
-                                    termMatchCount += 2; // Title matches worth more
-                                } else if (combinedText.includes(term)) {
-                                    termMatchCount += 1;
-                                }
-                            });
-                            
-                            if (termMatchCount >= queryTerms.length) {
-                                score = 500 + (termMatchCount * 10);
+                        } else {
+                            // Check if all query terms appear in combined text
+                            const allTermsInText = queryTerms.every(term => combinedText.includes(term));
+                            if (allTermsInText) {
+                                score = 600;
                                 matchType = 'almost';
+                            }
+                            // Check for partial term matches (fuzzy)
+                            else {
+                                let termMatchCount = 0;
+                                queryTerms.forEach(term => {
+                                    if (titleLower.includes(term)) {
+                                        termMatchCount += 2; // Title matches worth more
+                                    } else if (filenameLower.includes(term)) {
+                                        termMatchCount += 1.5; // Filename matches are valuable too
+                                    } else if (combinedText.includes(term)) {
+                                        termMatchCount += 1;
+                                    }
+                                });
+                                
+                                if (termMatchCount >= queryTerms.length) {
+                                    score = 500 + (termMatchCount * 10);
+                                    matchType = 'almost';
+                                }
                             }
                         }
                     }
@@ -626,6 +664,10 @@
                         // Count occurrences in title (higher weight)
                         const titleMatches = (titleLower.match(new RegExp(term, 'g')) || []).length;
                         relatedScore += titleMatches * 50;
+
+                        // Count occurrences in filename (medium-high weight)
+                        const filenameMatches = (filenameLower.match(new RegExp(term, 'g')) || []).length;
+                        relatedScore += filenameMatches * 35;
 
                         // Count occurrences in snippet
                         const snippetMatches = (snippetLower.match(new RegExp(term, 'g')) || []).length;

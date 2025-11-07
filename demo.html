@@ -357,10 +357,10 @@
         <div class="test-queries">
             <h3>Probeer Deze Testzoekopdrachten:</h3>
             <div class="test-query-buttons">
-                <button class="test-query-btn" onclick="testQuery('SharePoint Server 2019')">Exact: "SharePoint Server 2019"</button>
-                <button class="test-query-btn" onclick="testQuery('SharePoint 2019')">Bijna: "SharePoint 2019"</button>
-                <button class="test-query-btn" onclick="testQuery('zoeken')">Gerelateerd: "zoeken"</button>
-                <button class="test-query-btn" onclick="testQueryWithSite('MulderT', '/sites/mulderT')">MulderT Only</button>
+                <button class="test-query-btn" onclick="testQuery('WI Verkeersborden')">Test Filename Match</button>
+                <button class="test-query-btn" onclick="testQueryWithSite('Kennis', '/sites/mulderT/Kennis')">MulderT/Kennis Only</button>
+                <button class="test-query-btn" onclick="testQueryWithFilter('documents', 'docx')">Documents (No Weekmail)</button>
+                <button class="test-query-btn" onclick="testQuery('SharePoint 2019')">Almost Exact</button>
                 <button class="test-query-btn" onclick="testQueryWithSite('project', '')">All Sites</button>
             </div>
         </div>
@@ -401,6 +401,7 @@
                     <select id="siteFilter" onchange="performSearch()">
                         <option value="">Alle Sites</option>
                         <option value="/sites/mulderT">MulderT</option>
+                        <option value="/sites/mulderT/Kennis">MulderT/Kennis</option>
                         <option value="/sites/team">Teamsite</option>
                         <option value="/sites/docs">Documentcentrum</option>
                         <option value="/sites/projects">Projectsite</option>
@@ -518,6 +519,42 @@
                 modified: '2025-11-02T11:45:00Z',
                 fileType: 'aspx',
                 sitePath: '/sites/mulderT'
+            },
+            {
+                title: 'Werkinstrcutie Verkeersborden',
+                url: '/sites/mulderT/Kennis/WI_Verkeersborden.docx',
+                snippet: 'Werkinstrcutie voor het plaatsen en beheren van verkeersborden volgens gemeentelijke richtlijnen.',
+                author: 'Verkeersafdeling',
+                modified: '2025-11-06T08:30:00Z',
+                fileType: 'docx',
+                sitePath: '/sites/mulderT/Kennis'
+            },
+            {
+                title: 'Kennis Database Overview',
+                url: '/sites/mulderT/Kennis/overview.aspx',
+                snippet: 'Overview of the knowledge database containing all work instructions and procedures.',
+                author: 'Knowledge Manager',
+                modified: '2025-11-05T13:20:00Z',
+                fileType: 'aspx',
+                sitePath: '/sites/mulderT/Kennis'
+            },
+            {
+                title: 'Weekmail November 2025',
+                url: '/sites/team/weekmail-nov-2025.docx',
+                snippet: 'Weekly newsletter with updates from various departments and upcoming events.',
+                author: 'Communications Team',
+                modified: '2025-11-06T17:00:00Z',
+                fileType: 'docx',
+                sitePath: '/sites/team'
+            },
+            {
+                title: 'Weekmail Archive',
+                url: '/sites/docs/weekmail-archive.aspx',
+                snippet: 'Archive of all weekly newsletters from previous months and years.',
+                author: 'Archive System',
+                modified: '2025-10-30T12:00:00Z',
+                fileType: 'aspx',
+                sitePath: '/sites/docs'
             }
         ];
 
@@ -533,12 +570,16 @@
             const urlParams = new URLSearchParams(window.location.search);
             const query = urlParams.get('q');
             const site = urlParams.get('site');
+            const filetype = urlParams.get('filetype');
             
             if (query) {
                 document.getElementById('searchBox').value = query;
             }
             if (site !== null) {
                 document.getElementById('siteFilter').value = site;
+            }
+            if (filetype) {
+                document.getElementById('fileTypeFilter').value = filetype;
             }
             
             // Auto-search if parameters provided
@@ -555,6 +596,12 @@
         function testQueryWithSite(query, siteFilter) {
             document.getElementById('searchBox').value = query;
             document.getElementById('siteFilter').value = siteFilter;
+            performSearch();
+        }
+
+        function testQueryWithFilter(query, fileTypeFilter) {
+            document.getElementById('searchBox').value = query;
+            document.getElementById('fileTypeFilter').value = fileTypeFilter;
             performSearch();
         }
 
@@ -597,14 +644,20 @@
 
             // Apply site filter
             if (filters.site) {
-                // Filter to specific site path
-                results = results.filter(r => r.sitePath === filters.site);
+                // Filter to specific site path (including subsites with wildcard matching)
+                results = results.filter(r => r.sitePath && r.sitePath.startsWith(filters.site));
             }
             // If no site filter ("Alle Sites"), include all results
 
             // Apply other filters
             if (filters.fileType) {
                 results = results.filter(r => r.fileType === filters.fileType);
+                
+                // For document filters, exclude 'Weekmail' files
+                if (filters.fileType === 'docx' || filters.fileType === 'pdf' || 
+                    filters.fileType === 'xlsx' || filters.fileType === 'pptx') {
+                    results = results.filter(r => !r.title.toLowerCase().startsWith('weekmail'));
+                }
             }
             if (filters.author) {
                 results = results.filter(r => 
@@ -626,7 +679,13 @@
             return results.map(result => {
                 const titleLower = result.title.toLowerCase();
                 const snippetLower = result.snippet.toLowerCase();
-                const combinedText = titleLower + ' ' + snippetLower;
+                
+                // Extract filename from URL for better matching
+                const filename = result.url.split('/').pop() || '';
+                const filenameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+                const filenameLower = filenameWithoutExt.toLowerCase();
+                
+                const combinedText = titleLower + ' ' + snippetLower + ' ' + filenameLower;
 
                 let score = 0;
                 let matchType = 'related';
@@ -635,8 +694,14 @@
                 if (titleLower === fullQuery) {
                     score = 1000;
                     matchType = 'exact';
+                } else if (filenameLower === fullQuery) {
+                    score = 995;
+                    matchType = 'exact';
                 } else if (titleLower.includes(fullQuery)) {
                     score = 900;
+                    matchType = 'exact';
+                } else if (filenameLower.includes(fullQuery)) {
+                    score = 890;
                     matchType = 'exact';
                 } else if (combinedText.includes(fullQuery)) {
                     score = 800;

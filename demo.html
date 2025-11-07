@@ -360,7 +360,8 @@
                 <button class="test-query-btn" onclick="testQuery('SharePoint Server 2019')">Exact: "SharePoint Server 2019"</button>
                 <button class="test-query-btn" onclick="testQuery('SharePoint 2019')">Bijna: "SharePoint 2019"</button>
                 <button class="test-query-btn" onclick="testQuery('zoeken')">Gerelateerd: "zoeken"</button>
-                <button class="test-query-btn" onclick="testQuery('project status')">Test: "project status"</button>
+                <button class="test-query-btn" onclick="testQueryWithSite('MulderT', '/sites/mulderT')">MulderT Only</button>
+                <button class="test-query-btn" onclick="testQueryWithSite('project', '')">All Sites</button>
             </div>
         </div>
 
@@ -399,9 +400,10 @@
                     <label for="siteFilter">Site</label>
                     <select id="siteFilter" onchange="performSearch()">
                         <option value="">Alle Sites</option>
-                        <option value="site1">Teamsite</option>
-                        <option value="site2">Documentcentrum</option>
-                        <option value="site3">Projectsite</option>
+                        <option value="/sites/mulderT">MulderT</option>
+                        <option value="/sites/team">Teamsite</option>
+                        <option value="/sites/docs">Documentcentrum</option>
+                        <option value="/sites/projects">Projectsite</option>
                     </select>
                 </div>
             </div>
@@ -425,7 +427,7 @@
     </div>
 
     <script type="text/javascript">
-        // Demo data
+        // Demo data - includes documents from various sub-sites
         const MOCK_DATA = [
             {
                 title: 'SharePoint Server 2019 Installation Guide',
@@ -433,7 +435,26 @@
                 snippet: 'Complete guide for installing and configuring SharePoint Server 2019 in your environment. This comprehensive document covers all aspects of SharePoint Server 2019 deployment.',
                 author: 'John Smith',
                 modified: '2025-11-01T10:30:00Z',
-                fileType: 'aspx'
+                fileType: 'aspx',
+                sitePath: '/sites/docs'
+            },
+            {
+                title: 'MulderT Project Documentation',
+                url: '/sites/mulderT/project-docs.aspx',
+                snippet: 'Project documentation specific to MulderT initiative including requirements, specifications, and implementation details.',
+                author: 'MulderT Team',
+                modified: '2025-11-06T09:15:00Z',
+                fileType: 'aspx',
+                sitePath: '/sites/mulderT'
+            },
+            {
+                title: 'MulderT Search Configuration',
+                url: '/sites/mulderT/search-config.docx',
+                snippet: 'Search configuration settings and customizations specific to the MulderT sub-site.',
+                author: 'System Admin',
+                modified: '2025-11-05T14:30:00Z',
+                fileType: 'docx',
+                sitePath: '/sites/mulderT'
             },
             {
                 title: 'SharePoint Server 2019',
@@ -441,7 +462,8 @@
                 snippet: 'Official documentation for SharePoint Server 2019 features and capabilities.',
                 author: 'Microsoft',
                 modified: '2025-11-05T10:30:00Z',
-                fileType: 'aspx'
+                fileType: 'aspx',
+                sitePath: '/sites/docs'
             },
             {
                 title: 'SharePoint 2019 Best Practices',
@@ -449,7 +471,17 @@
                 snippet: 'Learn the best practices for SharePoint Server 2019 deployment and management. Includes configuration tips and optimization strategies.',
                 author: 'Jane Doe',
                 modified: '2025-10-28T14:20:00Z',
-                fileType: 'docx'
+                fileType: 'docx',
+                sitePath: '/sites/docs'
+            },
+            {
+                title: 'MulderT Meeting Minutes',
+                url: '/sites/mulderT/meeting-minutes.aspx',
+                snippet: 'Weekly meeting minutes for MulderT project team discussions and decisions.',
+                author: 'Project Manager',
+                modified: '2025-11-04T16:00:00Z',
+                fileType: 'aspx',
+                sitePath: '/sites/mulderT'
             },
             {
                 title: 'Search Configuration in SharePoint',
@@ -457,7 +489,8 @@
                 snippet: 'How to configure and optimize search functionality in SharePoint Server 2019. Detailed instructions for search service applications.',
                 author: 'Bob Johnson',
                 modified: '2025-10-25T09:15:00Z',
-                fileType: 'pdf'
+                fileType: 'pdf',
+                sitePath: '/sites/docs'
             },
             {
                 title: 'Project Status Report',
@@ -465,7 +498,8 @@
                 snippet: 'Monthly project status report containing metrics and updates for all ongoing projects. Includes timelines and resource allocation.',
                 author: 'Alice Brown',
                 modified: '2025-11-05T16:45:00Z',
-                fileType: 'xlsx'
+                fileType: 'xlsx',
+                sitePath: '/sites/projects'
             },
             {
                 title: 'Team Meeting Notes - SharePoint Migration',
@@ -473,23 +507,17 @@
                 snippet: 'Notes from the team meeting discussing SharePoint migration strategies and timelines. Action items and decisions documented.',
                 author: 'John Smith',
                 modified: '2025-11-03T11:00:00Z',
-                fileType: 'aspx'
+                fileType: 'aspx',
+                sitePath: '/sites/team'
             },
             {
-                title: 'Server Maintenance Schedule',
-                url: '/sites/it/maintenance.aspx',
-                snippet: 'Scheduled maintenance windows for all servers including SharePoint, Exchange, and file servers.',
-                author: 'IT Department',
-                modified: '2025-11-04T08:00:00Z',
-                fileType: 'aspx'
-            },
-            {
-                title: 'Advanced Search Techniques',
-                url: '/sites/training/search-techniques.pptx',
-                snippet: 'Training presentation on advanced search techniques and query syntax for power users.',
-                author: 'Training Team',
-                modified: '2025-10-30T13:30:00Z',
-                fileType: 'pptx'
+                title: 'MulderT Resource Library',
+                url: '/sites/mulderT/resources.aspx',
+                snippet: 'Comprehensive resource library for MulderT project including templates, guidelines, and reference materials.',
+                author: 'Resource Coordinator',
+                modified: '2025-11-02T11:45:00Z',
+                fileType: 'aspx',
+                sitePath: '/sites/mulderT'
             }
         ];
 
@@ -500,10 +528,33 @@
                     performSearch();
                 }
             });
+            
+            // Check for URL parameters to pre-populate search
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            const site = urlParams.get('site');
+            
+            if (query) {
+                document.getElementById('searchBox').value = query;
+            }
+            if (site !== null) {
+                document.getElementById('siteFilter').value = site;
+            }
+            
+            // Auto-search if parameters provided
+            if (query) {
+                setTimeout(() => performSearch(), 500);
+            }
         });
 
         function testQuery(query) {
             document.getElementById('searchBox').value = query;
+            performSearch();
+        }
+
+        function testQueryWithSite(query, siteFilter) {
+            document.getElementById('searchBox').value = query;
+            document.getElementById('siteFilter').value = siteFilter;
             performSearch();
         }
 
@@ -544,7 +595,14 @@
         function executeDemoSearch(query, filters) {
             let results = [...MOCK_DATA];
 
-            // Apply filters
+            // Apply site filter
+            if (filters.site) {
+                // Filter to specific site path
+                results = results.filter(r => r.sitePath === filters.site);
+            }
+            // If no site filter ("Alle Sites"), include all results
+
+            // Apply other filters
             if (filters.fileType) {
                 results = results.filter(r => r.fileType === filters.fileType);
             }
@@ -705,6 +763,7 @@
                             <span>📄 ${result.fileType.toUpperCase()}</span>
                             <span>👤 ${result.author}</span>
                             <span>📅 ${formatDate(result.modified)}</span>
+                            ${result.sitePath ? `<span>🌐 ${result.sitePath.replace('/sites/', '')}</span>` : ''}
                         </div>
                     </div>
                 `;

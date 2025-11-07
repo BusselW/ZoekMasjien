@@ -327,9 +327,7 @@
                     <label for="siteFilter">Site</label>
                     <select id="siteFilter" onchange="performSearch()">
                         <option value="">Alle Sites</option>
-                        <option value="site1">Teamsite</option>
-                        <option value="site2">Documentcentrum</option>
-                        <option value="site3">Projectsite</option>
+                        <option value="loading">Subsites laden...</option>
                     </select>
                 </div>
             </div>
@@ -364,7 +362,62 @@
                     performSearch();
                 }
             });
+            
+            // Load sub-sites for filter dropdown
+            loadSubSites();
         });
+
+        // Load sub-sites for filter dropdown
+        function loadSubSites() {
+            const siteFilter = document.getElementById('siteFilter');
+            
+            // Get the current site URL
+            const siteUrl = _spPageContextInfo ? _spPageContextInfo.webAbsoluteUrl : window.location.origin;
+            
+            // Build REST API URL to get sub-sites
+            const apiUrl = siteUrl + "/_api/web/webs?$select=Title,ServerRelativeUrl,Url&$orderby=Title";
+            
+            // Make the API call to get sub-sites
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'Content-Type': 'application/json;odata=verbose'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Clear loading option
+                siteFilter.innerHTML = '<option value="">Alle Sites</option>';
+                
+                if (data.d && data.d.results) {
+                    // Add each sub-site as an option
+                    data.d.results.forEach(subsite => {
+                        const option = document.createElement('option');
+                        option.value = subsite.ServerRelativeUrl;
+                        option.textContent = subsite.Title;
+                        siteFilter.appendChild(option);
+                    });
+                    
+                    // Add current site as well
+                    const currentSiteOption = document.createElement('option');
+                    currentSiteOption.value = _spPageContextInfo ? _spPageContextInfo.webServerRelativeUrl : '/';
+                    currentSiteOption.textContent = 'Huidige Site';
+                    siteFilter.insertBefore(currentSiteOption, siteFilter.children[1]);
+                }
+            })
+            .catch(error => {
+                console.warn('Failed to load sub-sites, using fallback options:', error);
+                // Fallback to hardcoded options if API fails
+                siteFilter.innerHTML = `
+                    <option value="">Alle Sites</option>
+                    <option value="/sites/mulderT">MulderT</option>
+                    <option value="/sites/team">Teamsite</option>
+                    <option value="/sites/docs">Documentcentrum</option>
+                    <option value="/sites/projects">Projectsite</option>
+                `;
+            });
+        }
 
         // Toggle filters visibility
         function toggleFilters() {
@@ -432,13 +485,25 @@
                 // Sanitize site to only allow safe characters
                 const sanitizedSite = filters.site.replace(/[^a-zA-Z0-9\-_\/]/g, '');
                 if (sanitizedSite) {
-                    searchQuery += ' Path:' + sanitizedSite;
+                    // For specific site, search only within that site and its sub-sites
+                    searchQuery += ' Path:"' + sanitizedSite + '"';
                 }
             }
 
-            // Build REST API URL
-            const apiUrl = siteUrl + "/_api/search/query?querytext='" + encodeURIComponent(searchQuery) + 
-                          "'&rowlimit=50&selectproperties='Title,Path,Author,Write,FileExtension,HitHighlightedSummary'";
+            // Build REST API URL with appropriate search scope
+            let apiUrl = siteUrl + "/_api/search/query?querytext='" + encodeURIComponent(searchQuery) + "'&rowlimit=50";
+            
+            // Configure search scope based on site filter
+            if (!filters.site || filters.site === '') {
+                // For "Alle Sites" - search across all sites in the site collection
+                apiUrl += "&sourceid='8413cd39-2156-4e00-b54d-11efd9abdb89'"; // Local SharePoint Results source ID
+                apiUrl += "&enablestemming=true&enablephonetic=true&enablenicknames=true";
+            } else {
+                // For specific site - restrict to that path only
+                apiUrl += "&enablestemming=true&enablephonetic=false&enablenicknames=false";
+            }
+            
+            apiUrl += "&selectproperties='Title,Path,Author,Write,FileExtension,HitHighlightedSummary,SiteTitle,WebTemplate'";
 
             // Make the API call
             fetch(apiUrl, {

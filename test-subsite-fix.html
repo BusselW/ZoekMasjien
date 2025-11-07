@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sub-site Search Fix Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #106ebe;
+        }
+        .results {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #0078d4;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Sub-site Search Fix Test</h1>
+    
+    <div class="highlight">
+        <h3>Problem Fixed:</h3>
+        <p><strong>Before:</strong> "Alle Sites" showed only /mulderT results, while individual site selection didn't work properly.</p>
+        <p><strong>After:</strong> "Alle Sites" now searches across ALL sub-sites, and individual site selection filters to that specific sub-site only.</p>
+    </div>
+
+    <div class="test-section">
+        <h3>Test the Fix</h3>
+        <p>Click these buttons to test the corrected sub-site search behavior:</p>
+        
+        <button class="test-button" onclick="openDemo('project', '')">
+            🌐 Test "Alle Sites" - Should show results from ALL sub-sites
+        </button>
+        
+        <button class="test-button" onclick="openDemo('MulderT', '/sites/mulderT')">
+            📁 Test "MulderT Only" - Should show only MulderT sub-site results
+        </button>
+        
+        <button class="test-button" onclick="openDemo('SharePoint', '/sites/docs')">
+            📁 Test "Documentcentrum Only" - Should show only docs sub-site results
+        </button>
+        
+        <div id="testResults" class="results" style="display: none;">
+            <h4>Test Instructions:</h4>
+            <ol>
+                <li>The demo page will open with your test query and site filter pre-selected</li>
+                <li>Look at the search results and note the 🌐 site indicators in the metadata</li>
+                <li>Verify that the site filter works as expected</li>
+                <li>Try switching between "Alle Sites" and specific site filters</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>What Was Fixed</h3>
+        
+        <h4>1. Dynamic Sub-site Loading</h4>
+        <p>The site filter dropdown now dynamically loads actual SharePoint sub-sites using the REST API:</p>
+        <code>/_api/web/webs?$select=Title,ServerRelativeUrl,Url&$orderby=Title</code>
+        
+        <h4>2. Proper Search Scope Configuration</h4>
+        <ul>
+            <li><strong>"Alle Sites"</strong> (empty filter): Uses SharePoint's default search scope to search across all accessible sites in the site collection</li>
+            <li><strong>Specific Site</strong>: Adds Path:"[site-path]" to the query to restrict results to that sub-site only</li>
+        </ul>
+        
+        <h4>3. Enhanced Search Query Logic</h4>
+        <p>The search query construction now properly handles different scopes:</p>
+        <ul>
+            <li>For "Alle Sites": Enables stemming, phonetic, and nickname matching for broader results</li>
+            <li>For specific sites: Uses more precise matching with path restrictions</li>
+        </ul>
+        
+        <h4>4. Fallback Handling</h4>
+        <p>If the REST API fails to load sub-sites, it falls back to predefined options including MulderT.</p>
+    </div>
+
+    <div class="test-section">
+        <h3>Files Modified</h3>
+        <ul>
+            <li><strong>search-center.aspx</strong>: Main SharePoint search page with dynamic sub-site loading</li>
+            <li><strong>demo.html</strong>: Demo version with enhanced mock data to simulate the fix</li>
+        </ul>
+    </div>
+
+    <script>
+        function openDemo(query, siteFilter) {
+            // Show test results section
+            document.getElementById('testResults').style.display = 'block';
+            
+            // Open demo.html with parameters
+            const params = new URLSearchParams();
+            params.append('q', query);
+            params.append('site', siteFilter);
+            
+            // Open in new tab
+            window.open('demo.html?' + params.toString(), '_blank');
+        }
+    </script>
+</body>
+</html>

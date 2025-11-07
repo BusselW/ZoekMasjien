@@ -118,9 +118,15 @@
         <h2>🧪 Test the Fixes</h2>
         
         <h3>Test 1: Weekmail Exclusion</h3>
-        <p>This test should show document results but exclude any 'Weekmail' files:</p>
+        <p>These tests should show document results but exclude any 'Weekmail' files:</p>
         <button class="test-button" onclick="openTestDemo('documents', '', 'docx')">
             Test Documents Filter + Weekmail Exclusion
+        </button>
+        <button class="test-button" onclick="openTestDemo('documenten', '', '')">
+            Test "Documenten" Search (No Filter)
+        </button>
+        <button class="test-button" onclick="openTestDemo('werkinstruct', '', '')">
+            Test "Werkinstruct" Search (No Filter)
         </button>
         
         <h3>Test 2: MulderT/Kennis Exact Matching</h3>
@@ -151,6 +157,8 @@
                 <li>✅ Should show: Regular documents (.docx, .pdf, .xlsx, .pptx)</li>
                 <li>❌ Should NOT show: Files with titles starting with "Weekmail"</li>
                 <li>📍 Look for: Absence of "Weekmail November 2025" and "Weekmail Archive" in results</li>
+                <li>🆕 <strong>New:</strong> Now works for document-related searches even without file type filters</li>
+                <li>📝 Triggers on terms: "document", "documenten", "bestanden", "files", "werkinstruct", "procedures", "handleiding"</li>
             </ul>
         </div>
 

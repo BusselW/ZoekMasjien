@@ -75,14 +75,13 @@
         <div id="apiResults"></div>
     </div>
 
-    <div class="diagnostic-section">
+        <div class="diagnostic-section">
         <h2>🔍 Search Query Test</h2>
         <input type="text" id="testQuery" placeholder="Enter test search query" value="SharePoint" style="width: 300px; padding: 8px; margin-right: 10px;">
         <button class="test-button" onclick="testSearchQuery()">Test Search</button>
+        <button class="test-button" onclick="testWeeklmailExclusion()">Test Weekmail Exclusion</button>
         <div id="searchResults"></div>
-    </div>
-
-    <div class="diagnostic-section">
+    </div>    <div class="diagnostic-section">
         <h2>📋 Diagnostic Information</h2>
         <div id="diagnosticInfo"></div>
     </div>
@@ -315,6 +314,54 @@
             })
             .catch(error => {
                 addResult('searchResults', 'error', 'Search Failed', error.message);
+            });
+        }
+
+        function testWeeklmailExclusion() {
+            const url = detectedSiteUrl || window.location.origin;
+            
+            document.getElementById('searchResults').innerHTML = '';
+            addResult('searchResults', 'info', 'Testing Weekmail Exclusion', 'Testing document searches with Weekmail exclusion');
+
+            // Test 1: Search for "documenten" with Weekmail exclusion
+            const searchUrl1 = url + `/_api/search/query?querytext='documenten -Title:Weekmail*'&rowlimit=10&selectproperties='Title,Path'`;
+            
+            fetch(searchUrl1, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json;odata=verbose',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+            })
+            .then(data => {
+                if (data.d && data.d.query && data.d.query.PrimaryQueryResult) {
+                    const results = data.d.query.PrimaryQueryResult.RelevantResults.Table.Rows.results;
+                    const weekmailCount = results.filter(row => {
+                        const title = row.Cells.results.find(c => c.Key === 'Title')?.Value || '';
+                        return title.toLowerCase().includes('weekmail');
+                    }).length;
+                    
+                    if (weekmailCount === 0) {
+                        addResult('searchResults', 'success', 'Weekmail Exclusion Working', 
+                            `Found ${results.length} results, none contain 'Weekmail' ✅`);
+                    } else {
+                        addResult('searchResults', 'error', 'Weekmail Exclusion Failed', 
+                            `Found ${weekmailCount} results still containing 'Weekmail' ❌`);
+                    }
+                } else {
+                    addResult('searchResults', 'info', 'No Results', 'Search returned no results to test');
+                }
+            })
+            .catch(error => {
+                addResult('searchResults', 'error', 'Weekmail Test Failed', error.message);
             });
         }
 

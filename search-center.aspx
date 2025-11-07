@@ -513,6 +513,12 @@
             const siteUrl = siteBaseUrl || window.location.origin;
             let searchQuery = query;
 
+            // Check if this is a document-related search
+            const documentTerms = ['document', 'documenten', 'bestanden', 'files', 'werkinstruct', 'procedures', 'handleiding'];
+            const isDocumentSearch = documentTerms.some(term => 
+                query.toLowerCase().includes(term.toLowerCase())
+            );
+
             // Apply filters to the query with proper escaping
             if (filters.fileType) {
                 // Sanitize fileType to only allow alphanumeric characters
@@ -525,6 +531,11 @@
                         searchQuery += ' -Title:Weekmail*';
                     }
                 }
+            }
+            
+            // If this is a document-related search but no specific file type filter, still exclude Weekmail
+            if (isDocumentSearch && !filters.fileType) {
+                searchQuery += ' -Title:Weekmail*';
             }
             if (filters.author) {
                 // Escape quotes in author name

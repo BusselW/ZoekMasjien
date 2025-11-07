@@ -358,9 +358,9 @@
             <h3>Probeer Deze Testzoekopdrachten:</h3>
             <div class="test-query-buttons">
                 <button class="test-query-btn" onclick="testQuery('WI Verkeersborden')">Test Filename Match</button>
+                <button class="test-query-btn" onclick="testQuery('documenten')">Test "Documenten" (No Weekmail)</button>
+                <button class="test-query-btn" onclick="testQuery('werkinstruct')">Test "Werkinstruct" (No Weekmail)</button>
                 <button class="test-query-btn" onclick="testQueryWithSite('Kennis', '/sites/mulderT/Kennis')">MulderT/Kennis Only</button>
-                <button class="test-query-btn" onclick="testQueryWithFilter('documents', 'docx')">Documents (No Weekmail)</button>
-                <button class="test-query-btn" onclick="testQuery('SharePoint 2019')">Almost Exact</button>
                 <button class="test-query-btn" onclick="testQueryWithSite('project', '')">All Sites</button>
             </div>
         </div>
@@ -642,6 +642,12 @@
         function executeDemoSearch(query, filters) {
             let results = [...MOCK_DATA];
 
+            // Check if this is a document-related search
+            const documentTerms = ['document', 'documenten', 'bestanden', 'files', 'werkinstruct', 'procedures', 'handleiding'];
+            const isDocumentSearch = documentTerms.some(term => 
+                query.toLowerCase().includes(term.toLowerCase())
+            );
+
             // Apply site filter
             if (filters.site) {
                 // Filter to specific site path (including subsites with wildcard matching)
@@ -658,6 +664,11 @@
                     filters.fileType === 'xlsx' || filters.fileType === 'pptx') {
                     results = results.filter(r => !r.title.toLowerCase().startsWith('weekmail'));
                 }
+            }
+            
+            // If this is a document-related search but no specific file type filter, still exclude Weekmail
+            if (isDocumentSearch && !filters.fileType) {
+                results = results.filter(r => !r.title.toLowerCase().startsWith('weekmail'));
             }
             if (filters.author) {
                 results = results.filter(r => 
